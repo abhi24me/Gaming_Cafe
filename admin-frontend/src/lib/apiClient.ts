@@ -25,24 +25,23 @@ async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  // For admin app, token comes from AdminAuthContext
   const token = typeof window !== 'undefined' ? localStorage.getItem('welloAdminToken') : null;
   
-  const defaultHeaders: HeadersInit = {
-    ...options.headers,
-  };
+  // Initialize Headers object
+  const requestHeaders = new Headers(options.headers);
 
-  if (!(options.body instanceof FormData)) {
-    defaultHeaders['Content-Type'] = 'application/json';
+  // Only set Content-Type if body is not FormData and it's not already set
+  if (!(options.body instanceof FormData) && !requestHeaders.has('Content-Type')) {
+    requestHeaders.set('Content-Type', 'application/json');
   }
 
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  if (token && !requestHeaders.has('Authorization')) {
+    requestHeaders.set('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
-    headers: defaultHeaders,
+    headers: requestHeaders, // Pass the Headers object
   });
 
   if (!response.ok) {

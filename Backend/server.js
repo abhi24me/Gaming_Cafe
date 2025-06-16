@@ -13,7 +13,7 @@ const app = express();
 // --- CORS Configuration ---
 const allowedOrigins = [
   'http://localhost:3001',
-  'https://gaming-cafe-frontend-mpidfizf7.vercel.app/'
+  'https://gaming-cafe-frontend.vercel.app/'
 ];
 
 const corsOptions = {

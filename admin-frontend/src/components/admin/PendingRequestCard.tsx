@@ -1,0 +1,135 @@
+
+'use client';
+
+import type { TopUpRequestFromAPI } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { User, Mail, Landmark, CheckCircle, XCircle, AlertTriangle, Loader2, Image as ImageIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import apiClient, { ApiError } from '@/lib/apiClient';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image'; // For displaying the receipt if it's a URL
+
+interface PendingRequestCardProps {
+  request: TopUpRequestFromAPI;
+  onActionSuccess: () => void; // Callback to refresh the list on success
+}
+
+export default function PendingRequestCard({ request, onActionSuccess }: PendingRequestCardProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL; // To construct full image URL if needed
+
+  // Construct receipt image URL - This assumes your backend serves images from a specific path
+  // If `receiptData` is a base64 string, you'd use that directly in an <img> src.
+  // For now, let's assume `receiptImageUrl` will be provided or constructed.
+  // If the backend stores images as buffers and doesn't provide a URL,
+  // we'd need an endpoint to fetch the image by request ID.
+  const receiptDisplayUrl = request.receiptImageUrl 
+    ? (API_URL ? `${API_URL.replace('/api','')}${request.receiptImageUrl}` : request.receiptImageUrl) 
+    : (request.receiptData ? `data:${request.receiptMimeType};base64,${Buffer.from(request.receiptData.data).toString('base64')}` : 'https://placehold.co/300x200.png?text=No+Receipt');
+
+
+  const handleApprove = async () => {
+    setIsProcessing(true);
+    try {
+      await apiClient(`/admin/topup-requests/${request._id}/approve`, { method: 'PUT' });
+      toast({ title: "Request Approved", description: `Request ID ${request._id.slice(-6)} has been approved.`, className: "bg-green-600 text-white border-green-700" });
+      onActionSuccess(); // Refresh the list in the parent component
+    } catch (error) {
+      toast({ title: "Approval Failed", description: error instanceof ApiError ? error.message : "Could not approve request.", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    // Potentially add a dialog here to get adminNotes for rejection
+    const adminNotes = prompt("Enter reason for rejection (optional):");
+    setIsProcessing(true);
+    try {
+      await apiClient(`/admin/topup-requests/${request._id}/reject`, { 
+        method: 'PUT',
+        body: JSON.stringify({ adminNotes: adminNotes || undefined }) 
+      });
+      toast({ title: "Request Rejected", description: `Request ID ${request._id.slice(-6)} has been rejected.`, className: "bg-red-600 text-white border-red-700" });
+      onActionSuccess();
+    } catch (error) {
+      toast({ title: "Rejection Failed", description: error instanceof ApiError ? error.message : "Could not reject request.", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <Card className="bg-card shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col">
+      <CardHeader className="p-4 border-b">
+        <CardTitle className="text-base sm:text-lg text-primary flex items-center">
+          <Landmark className="mr-2 h-5 w-5" />
+          Top-Up: ₹{request.amount.toFixed(2)}
+        </CardTitle>
+        <CardDescription className="text-xs text-muted-foreground">
+          ID: {request._id}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-4 space-y-2 text-sm flex-grow">
+        <div className="flex items-center">
+          <User className="mr-2 h-4 w-4 text-muted-foreground" /> 
+          <span className="font-medium">{request.user?.gamerTag || 'N/A'}</span>
+        </div>
+        <div className="flex items-center">
+          <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
+          <span>{request.user?.email || 'N/A'}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Requested: {new Date(request.requestedAt).toLocaleString()}
+        </p>
+        
+        {/* Receipt Image Display */}
+        <div className="mt-3 pt-3 border-t">
+            <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Payment Receipt:</h4>
+            {receiptDisplayUrl.startsWith('data:') || receiptDisplayUrl.startsWith('http') ? (
+                 <a href={receiptDisplayUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-40 sm:h-48 rounded border border-border overflow-hidden group">
+                    <Image 
+                        src={receiptDisplayUrl}
+                        alt={`Receipt for request ${request._id}`}
+                        layout="fill"
+                        objectFit="contain"
+                        className="group-hover:opacity-80 transition-opacity"
+                        data-ai-hint="payment receipt financial document"
+                    />
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ImageIcon className="h-8 w-8 text-white" />
+                    </div>
+                </a>
+            ) : (
+                <div className="flex items-center justify-center h-32 bg-muted/50 rounded border border-dashed text-muted-foreground">
+                    <AlertTriangle className="h-6 w-6 mr-2"/>
+                    <p>Receipt not available</p>
+                </div>
+            )}
+        </div>
+
+      </CardContent>
+      <CardFooter className="p-3 bg-muted/30 border-t flex flex-col sm:flex-row gap-2">
+        <Button 
+          onClick={handleApprove} 
+          disabled={isProcessing} 
+          className="w-full sm:w-auto flex-1 bg-green-600 hover:bg-green-700 text-white"
+        >
+          {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CheckCircle className="mr-2 h-4 w-4" />}
+          Approve
+        </Button>
+        <Button 
+          onClick={handleReject} 
+          disabled={isProcessing} 
+          variant="destructive"
+          className="w-full sm:w-auto flex-1"
+        >
+          {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <XCircle className="mr-2 h-4 w-4" />}
+          Reject
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}

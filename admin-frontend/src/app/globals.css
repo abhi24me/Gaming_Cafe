@@ -1,0 +1,82 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Admin Theme - Light by Default */
+    --background: 220 20% 97%; /* Lighter Gray */
+    --foreground: 220 10% 15%; /* Darker Gray for better contrast */
+
+    --card: 0 0% 100%; 
+    --card-foreground: 220 10% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 10% 15%;
+
+    --primary: 211 90% 55%; /* Standard Blue */
+    --primary-foreground: 0 0% 100%; /* White */
+
+    --secondary: 260 85% 65%; /* Complementary Purple */
+    --secondary-foreground: 0 0% 100%; /* White */
+
+    --muted: 220 10% 90%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 160 70% 45%; /* Teal/Green for accents */
+    --accent-foreground: 0 0% 100%; /* White */
+
+    --destructive: 0 75% 55%; 
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 10% 88%; /* Slightly darker border for definition */
+    --input: 220 10% 95%; /* Input background slightly off-white */
+    --ring: 211 90% 55%; 
+
+    --radius: 0.5rem;
+
+    /* Glow colors for admin panel (can be more subtle or match primary/accent) */
+    --primary-glow: 211 90% 65%; /* Adjusted for light theme */
+    --accent-glow: 160 70% 55%;  /* Adjusted for light theme */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600; 
+  }
+}
+
+/* Custom glow effects for Admin (can be adjusted) */
+.btn-glow-primary {
+  @apply shadow-[0_0_4px_hsl(var(--primary-glow)),_0_0_8px_hsl(var(--primary-glow))] transition-all duration-300 ease-in-out hover:shadow-[0_0_8px_hsl(var(--primary-glow)),_0_0_16px_hsl(var(--primary-glow))];
+}
+
+.btn-glow-accent {
+  @apply shadow-[0_0_4px_hsl(var(--accent-glow)),_0_0_8px_hsl(var(--accent-glow))] transition-all duration-300 ease-in-out hover:shadow-[0_0_8px_hsl(var(--accent-glow)),_0_0_16px_hsl(var(--accent-glow))];
+}
+
+.border-glow-accent {
+  @apply border-accent shadow-[0_0_6px_-1px_hsl(var(--accent-glow)),_0_0_1px_hsl(var(--accent-glow))_inset];
+}
+
+.border-glow-primary {
+    @apply border-primary shadow-[0_0_6px_-1px_hsl(var(--primary-glow)),_0_0_1px_hsl(var(--primary-glow))_inset];
+}
+
+.btn-gradient-primary-accent {
+  @apply bg-gradient-to-br from-primary to-accent text-primary-foreground;
+}
+.btn-gradient-primary-accent:hover {
+   @apply brightness-110 shadow-lg;
+}

@@ -4,7 +4,7 @@
 import type { Booking, Screen } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Clock, UserCircle, IndianRupee, Monitor } from 'lucide-react'; // Added Monitor as fallback
+import { CalendarDays, Clock, UserCircle, IndianRupee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -17,15 +17,18 @@ export default function BookingHistoryItem({ booking }: BookingHistoryItemProps)
     upcoming: 'bg-primary/80 text-primary-foreground border-primary',
     completed: 'bg-green-600/80 text-white border-green-600',
     cancelled: 'bg-destructive/80 text-destructive-foreground border-destructive',
-    active: 'bg-yellow-500/80 text-black border-yellow-500', // Added active status color
+    active: 'bg-yellow-500/80 text-black border-yellow-500',
   };
 
   const bookedAtDate = new Date(booking.bookedAt);
-  const sessionDate = new Date(booking.startTime); // Use startTime for session date/time
+  const sessionDate = new Date(booking.startTime);
 
-  const screenName = booking.screenName || (typeof booking.screen === 'object' ? (booking.screen as Screen).name : 'Gaming Screen');
-  const screenImage = (typeof booking.screen === 'object' ? (booking.screen as Screen).imagePlaceholderUrl : 'https://placehold.co/300x200.png');
-  const screenImageHint = (typeof booking.screen === 'object' ? (booking.screen as Screen).imageAiHint : 'gaming');
+  const screenName = booking.screenName || 
+                    (booking.screen && typeof booking.screen === 'object' ? (booking.screen as Screen).name : 'Gaming Screen');
+  
+  const screenImage = (booking.screen && typeof booking.screen === 'object' ? (booking.screen as Screen).imagePlaceholderUrl : 'https://placehold.co/300x200.png');
+  
+  const screenImageHint = (booking.screen && typeof booking.screen === 'object' ? (booking.screen as Screen).imageAiHint : 'gaming');
 
 
   return (

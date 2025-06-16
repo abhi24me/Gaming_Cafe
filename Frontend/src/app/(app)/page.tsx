@@ -7,7 +7,7 @@ import ScreenSelector from '@/components/booking/ScreenSelector';
 import DateSelector from '@/components/booking/DateSelector';
 import TimeSlotSelector from '@/components/booking/TimeSlotSelector';
 import BookingPreview from '@/components/booking/BookingPreview';
-import type { Screen, TimeSlot, Booking } from '@/lib/types';
+import type { Screen, TimeSlot, Booking, ScreenAvailabilityResponse, BookingCreationResponse } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from '@/contexts/WalletContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,13 +38,14 @@ export default function HomePage() {
   }>({ screen: null, slot: null, date: null });
 
   const { toast } = useToast();
-  const { fetchWalletData } = useWallet(); // Removed deduct, addBooking
+  const { fetchWalletData } = useWallet();
   const { isAuthenticated, isLoadingAuth } = useAuth();
 
   useEffect(() => {
     const loadScreens = async () => {
       if (!isAuthenticated) {
         setIsLoadingScreens(false);
+        setApiScreens([]);
         return;
       }
       setIsLoadingScreens(true);
@@ -52,47 +53,46 @@ export default function HomePage() {
         const screensData = await apiClient<Screen[]>('/screens');
         setApiScreens(screensData);
       } catch (error) {
-        toast({ title: "Error fetching screens", description: (error as ApiError).message, variant: "destructive" });
-        setApiScreens([]); // Clear screens on error
+        toast({ title: "Error Fetching Screens", description: (error as ApiError).message || "Could not load screens.", variant: "destructive" });
+        setApiScreens([]);
       } finally {
         setIsLoadingScreens(false);
       }
     };
 
-    if (!isLoadingAuth) { // Ensure auth state is resolved
+    if (!isLoadingAuth) {
       loadScreens();
     }
   }, [isAuthenticated, isLoadingAuth, toast]);
 
   const handleScreenSelect = (screen: Screen) => {
     setSelectedScreen(screen);
-    setSelectedDate(undefined); // Reset date when screen changes
-    setSelectedTimeSlot(null); // Reset time slot
-    setAvailableSlots([]); // Reset available slots
+    setSelectedDate(undefined);
+    setSelectedTimeSlot(null);
+    setAvailableSlots([]);
     setBookingStep('date');
   };
 
   const handleDateSelect = async (date: Date | undefined) => {
     if (date && selectedScreen?._id) {
       setSelectedDate(date);
-      setSelectedTimeSlot(null); // Reset time slot
+      setSelectedTimeSlot(null);
       setBookingStep('time');
       setIsLoadingSlots(true);
       try {
-        const formattedDate = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
-        const slotsData = await apiClient<{ slots: TimeSlot[] }>(`/screens/${selectedScreen._id}/availability?date=${formattedDate}`);
+        const formattedDate = date.toLocaleDateString('en-CA'); // YYYY-MM-DD for API query
+        const slotsData = await apiClient<ScreenAvailabilityResponse>(`/screens/${selectedScreen._id}/availability?date=${formattedDate}`);
         setAvailableSlots(slotsData.slots || []);
       } catch (error) {
-        toast({ title: "Error fetching time slots", description: (error as ApiError).message, variant: "destructive" });
+        toast({ title: "Error Fetching Time Slots", description: (error as ApiError).message || "Could not load time slots.", variant: "destructive" });
         setAvailableSlots([]);
       } finally {
         setIsLoadingSlots(false);
       }
-    } else if (date === undefined) { // Calendar was cleared
+    } else if (date === undefined) {
         setSelectedDate(undefined);
         setSelectedTimeSlot(null);
         setAvailableSlots([]);
-        // Optionally, could set bookingStep back to 'date' or keep it 'time' allowing re-selection
     }
   };
 
@@ -112,15 +112,13 @@ export default function HomePage() {
     } else {
       toast({
         title: "Incomplete Selection",
-        description: "Something went wrong with your selection. Please ensure screen, date, and time are selected.",
+        description: "Please ensure screen, date, and time are selected.",
         variant: "destructive",
       });
-      // Reset to a logical step if something is amiss
-      setBookingStep('screen');
+      setBookingStep('screen'); // Reset to start
       setSelectedScreen(null);
       setSelectedDate(undefined);
       setSelectedTimeSlot(null);
-      setApiScreens([]); // Consider re-fetching screens or just resetting selection
       setAvailableSlots([]);
     }
   };
@@ -130,14 +128,15 @@ export default function HomePage() {
       setIsSubmittingBooking(true);
       const bookingPayload = {
         screenId: currentBookingDetails.screen._id,
-        date: currentBookingDetails.date.toLocaleDateString('en-CA'), // YYYY-MM-DD
+        date: currentBookingDetails.date.toLocaleDateString('en-CA'), // YYYY-MM-DD for backend
         timeSlot: currentBookingDetails.slot.time, // The "HH:MM AM/PM - HH:MM AM/PM" string
         pricePaid: currentBookingDetails.slot.price || 0,
         gamerTag: gamerTag,
       };
 
       try {
-        await apiClient<Booking>('/bookings', {
+        // Backend returns BookingCreationResponse which includes booking, transaction, newBalance, newLoyaltyPoints
+        await apiClient<BookingCreationResponse>('/bookings', {
           method: 'POST',
           body: JSON.stringify(bookingPayload),
         });
@@ -148,7 +147,7 @@ export default function HomePage() {
           className: "bg-green-600 text-white border-green-700",
         });
 
-        await fetchWalletData(); // Refresh wallet balance and loyalty points
+        await fetchWalletData(); // Refresh wallet balance and loyalty points from context
 
         setIsConfirmDialogOpen(false);
         setBookingStep('screen');
@@ -205,7 +204,6 @@ export default function HomePage() {
       <div className="text-center py-10">
         <h2 className="text-2xl font-semibold mb-4 text-primary">Welcome to Wello!</h2>
         <p className="text-muted-foreground">Please log in to book your gaming session.</p>
-        {/* Optionally, add a Link to login page here */}
       </div>
     );
   }
@@ -237,7 +235,7 @@ export default function HomePage() {
           <TimeSlotSelector
             screen={selectedScreen}
             date={selectedDate}
-            availableSlots={availableSlots} // Pass fetched slots
+            availableSlots={availableSlots}
             selectedSlotId={selectedTimeSlot?.id || null}
             onSlotSelect={handleTimeSlotSelect}
             onBack={handleBackToDateSelection}

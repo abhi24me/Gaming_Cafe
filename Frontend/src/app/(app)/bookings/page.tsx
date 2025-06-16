@@ -9,12 +9,12 @@ import { useWallet } from '@/contexts/WalletContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { BellRing, Award, Loader2, ListX } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'; // CardContent was unused
 import apiClient, { ApiError } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function BookingsPage() {
-  const { loyaltyPoints, fetchWalletData } = useWallet(); // WalletContext still provides loyaltyPoints
+  const { loyaltyPoints } = useWallet(); 
   const { isAuthenticated, isLoadingAuth } = useAuth();
   const { toast } = useToast();
 
@@ -31,11 +31,16 @@ export default function BookingsPage() {
       setIsLoadingBookings(true);
       try {
         const bookingsData = await apiClient<Booking[]>('/bookings');
-        // Sort bookings: upcoming first, then by bookedAt date descending
+        // Sort bookings: upcoming first, then by startTime date descending
         const sortedBookings = bookingsData.sort((a, b) => {
-            if (a.status === 'upcoming' && b.status !== 'upcoming') return -1;
-            if (a.status !== 'upcoming' && b.status === 'upcoming') return 1;
-            return new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime();
+            const aIsUpcoming = new Date(a.startTime) > new Date() && a.status === 'upcoming';
+            const bIsUpcoming = new Date(b.startTime) > new Date() && b.status === 'upcoming';
+
+            if (aIsUpcoming && !bIsUpcoming) return -1;
+            if (!aIsUpcoming && bIsUpcoming) return 1;
+            
+            // If both are upcoming (or both not), sort by startTime descending
+            return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
         });
         setUserBookings(sortedBookings);
       } catch (error) {
@@ -50,33 +55,33 @@ export default function BookingsPage() {
       }
     };
 
-    if (!isLoadingAuth) { // Ensure auth state is resolved before fetching
+    if (!isLoadingAuth) { 
       loadUserBookings();
     }
   }, [isAuthenticated, isLoadingAuth, toast]);
 
 
   const handleSimulateReminder = () => {
-    if (!userBookings) {
+    if (!userBookings || userBookings.length === 0) { // Check length
         toast({ title: "No Bookings", description: "Cannot simulate reminder without bookings.", variant: "destructive"});
         return;
     }
-    const upcomingBookings = userBookings.filter(b => b.status === 'upcoming');
+    const upcomingBookings = userBookings.filter(b => b.status === 'upcoming' && new Date(b.startTime) > new Date());
     let reminderTitle = "🎮 Session Reminder!";
     let reminderDescription = "You have an upcoming session soon. Check your bookings!";
 
     if (upcomingBookings.length > 0) {
-      // Find the soonest upcoming booking based on its startTime
-      const soonestBooking = upcomingBookings.sort((a, b) => {
-        const dateA = new Date(a.startTime); // Use startTime from backend
-        const dateB = new Date(b.startTime); // Use startTime from backend
-        return dateA.getTime() - dateB.getTime();
-      })[0];
+      const soonestBooking = upcomingBookings.sort((a, b) => 
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      )[0];
       
-      const bookedDate = new Date(soonestBooking.startTime);
-      const timeDisplay = bookedDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+      const sessionDate = new Date(soonestBooking.startTime);
+      const timeDisplay = sessionDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
 
-      reminderDescription = `Your session for '${soonestBooking.screenName || (typeof soonestBooking.screen === 'object' && soonestBooking.screen.name) || 'Unknown Screen'}' at ${timeDisplay} is coming up! Get ready!`;
+      const screenName = soonestBooking.screenName || 
+                         (soonestBooking.screen && typeof soonestBooking.screen === 'object' ? soonestBooking.screen.name : 'Unknown Screen');
+
+      reminderDescription = `Your session for '${screenName}' at ${timeDisplay} is coming up! Get ready!`;
     }
 
     toast({
@@ -97,6 +102,16 @@ export default function BookingsPage() {
       </div>
     );
   }
+  
+  if (!isAuthenticated && !isLoadingAuth) {
+     return (
+      <div className="text-center py-10">
+        <h2 className="text-2xl font-semibold mb-4 text-primary">Access Denied</h2>
+        <p className="text-muted-foreground">Please log in to view your bookings.</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-6 sm:space-y-8 flex flex-col h-full">
@@ -127,7 +142,6 @@ export default function BookingsPage() {
         {userBookings && userBookings.length > 0 ? (
           <ScrollArea className="h-full">
           <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 pb-4">
-            {/* Sorting is now done in useEffect after fetch */}
             {userBookings.map((booking) => (
               <BookingHistoryItem key={booking._id} booking={booking} />
             ))}

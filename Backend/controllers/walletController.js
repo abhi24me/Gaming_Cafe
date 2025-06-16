@@ -1,106 +1,20 @@
+
 const User = require('../models/User');
+const Transaction = require('../models/Transaction');
 const TopUpRequest = require('../models/TopUpRequest');
-const Transaction = require('../models/Transaction'); // Needed for history
+const mongoose = require('mongoose');
 
-// @desc    User submits a top-up request
-// @route   POST /api/wallet/request-topup
-// @access  Private
-exports.submitTopUpRequest = async (req, res) => {
-  const { amount, upiTransactionId, receiptImageUrl } = req.body; // Assuming receiptImageUrl for now
-  const userId = req.user.id; // From 'protect' middleware
-
+exports.getWalletTransactions = async (req, res) => {
   try {
-    if (!amount || !upiTransactionId || !receiptImageUrl) {
-      return res.status(400).json({ message: 'Amount, UPI Transaction ID, and Receipt Image URL are required.' });
-    }
-
-    const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      return res.status(400).json({ message: 'Invalid amount specified.' });
-    }
-
-    // --- WITH MULTER, receiptImageUrl would come from req.file ---
-    // if (!req.file) {
-    //   return res.status(400).json({ message: 'Receipt image is required.' });
-    // }
-    // const actualReceiptImageUrl = req.file.path; // Or URL if uploaded to cloud storage
-
-    const newTopUpRequest = new TopUpRequest({
-      user: userId,
-      amount: numericAmount,
-      upiTransactionId,
-      receiptImageUrl: receiptImageUrl, // Replace with actualReceiptImageUrl when using multer
-      status: 'pending',
-      requestedAt: new Date()
-    });
-
-    await newTopUpRequest.save();
-
-    res.status(201).json({
-      message: 'Top-up request submitted successfully. It will be reviewed by an admin.',
-      request: newTopUpRequest
-    });
-
-  } catch (error) {
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({ message: messages.join(', ') });
-    }
-    console.error('Submit TopUp Request Error:', error);
-    res.status(500).json({ message: 'Server error while submitting top-up request.' });
-  }
-};
-
-// @desc    Get current user's wallet balance
-// @route   GET /api/wallet/balance
-// @access  Private
-exports.getWalletBalance = async (req, res) => {
-  try {
-    // req.user is populated by the 'protect' middleware
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
-    res.status(200).json({
-      gamerTag: user.gamerTag,
-      walletBalance: user.walletBalance,
-      loyaltyPoints: user.loyaltyPoints
-    });
-  } catch (error) {
-    console.error('Get Wallet Balance Error:', error);
-    res.status(500).json({ message: 'Server error while fetching wallet balance.' });
-  }
-};
-
-// @desc    Get current user's transaction history
-// @route   GET /api/wallet/transactions
-// @access  Private
-exports.getTransactionHistory = async (req, res) => {
-  try {
-    const transactions = await Transaction.find({ user: req.user.id }).sort({ timestamp: -1 }); // Newest first
+    const transactions = await Transaction.find({ user: req.user.id })
+      .sort({ timestamp: -1 });
     res.status(200).json(transactions);
   } catch (error) {
-    console.error('Get Transaction History Error:', error);
-    res.status(500).json({ message: 'Server error while fetching transaction history.' });
+    console.error('Get Wallet Transactions Error:', error);
+    res.status(500).json({ message: 'Server error while fetching transactions.' });
   }
 };
 
-// @desc    Get current user's top-up request history
-// @route   GET /api/wallet/topup-requests
-// @access  Private
-exports.getUserTopUpRequests = async (req, res) => {
-  try {
-    const topUpRequests = await TopUpRequest.find({ user: req.user.id }).sort({ requestedAt: -1 });
-    res.status(200).json(topUpRequests);
-  } catch (error) {
-    console.error('Get User TopUp Requests Error:', error);
-    res.status(500).json({ message: 'Server error while fetching top-up requests.' });
-  }
-};
-
-// @desc    Get current wallet balance and loyalty points for logged-in user
-// @route   GET /api/wallet/details
-// @access  Private
 exports.getWalletDetails = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('walletBalance loyaltyPoints');
@@ -111,8 +25,61 @@ exports.getWalletDetails = async (req, res) => {
       balance: user.walletBalance,
       loyaltyPoints: user.loyaltyPoints
     });
-  } catch (error) {
+  } catch (error)
+  {
     console.error('Get Wallet Details Error:', error);
     res.status(500).json({ message: 'Server error while fetching wallet details.' });
+  }
+};
+
+exports.requestTopUp = async (req, res) => {
+  const { amount, paymentMethod } = req.body; // transactionId (UPI ID) is removed
+  const userId = req.user.id;
+
+  if (!amount) {
+    return res.status(400).json({ message: 'Amount is required.' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ message: 'Payment receipt image is required.' });
+  }
+
+  const numericAmount = parseFloat(amount);
+  if (isNaN(numericAmount) || numericAmount <= 0) {
+    return res.status(400).json({ message: 'Invalid top-up amount.' });
+  }
+
+  try {
+    const newTopUpRequest = new TopUpRequest({
+      user: userId,
+      amount: numericAmount,
+      paymentMethod: paymentMethod || 'UPI',
+      receiptData: req.file.buffer, // Store the image buffer
+      receiptMimeType: req.file.mimetype, // Store the image MIME type
+      // upiTransactionId removed
+      // receiptImageUrl and receiptFilename removed
+      status: 'pending',
+      requestedAt: new Date()
+    });
+
+    await newTopUpRequest.save();
+
+    res.status(201).json({
+      message: 'Top-up request submitted successfully. It will be reviewed by an admin.',
+      request: { // Send back limited request info, not the image data
+        _id: newTopUpRequest._id,
+        amount: newTopUpRequest.amount,
+        status: newTopUpRequest.status,
+        requestedAt: newTopUpRequest.requestedAt
+      }
+    });
+
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    console.error('Request Top-Up Error:', error);
+    res.status(500).json({ message: 'Server error while submitting top-up request.' });
   }
 };

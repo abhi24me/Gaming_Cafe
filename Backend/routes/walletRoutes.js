@@ -1,58 +1,48 @@
+
 const express = require('express');
 const router = express.Router();
 const walletController = require('../controllers/walletController');
-const { protect } = require('../middleware/authMiddleware'); // To ensure only logged-in users can make requests
+const { protect } = require('../middleware/authMiddleware');
+const multer = require('multer');
+// path and fs are no longer needed here as we are not saving to disk
 
-// --- MULTER SETUP (Conceptual - you'd configure this properly) ---
-// const multer = require('multer');
-// const path = require('path');
+// Multer configuration for receipt uploads (using memory storage)
+const storage = multer.memoryStorage(); // Store files in memory as Buffers
 
-// // Configure storage for uploaded receipts (example: saving to disk)
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, 'uploads/receipts/'); // Ensure 'uploads/receipts/' directory exists
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, req.user.id + '-' + Date.now() + path.extname(file.originalname)); // Unique filename
-//   }
-// });
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Not an image! Please upload an image file (jpeg, png, webp).'), false);
+  }
+};
 
-// // File filter for images
-// const fileFilter = (req, file, cb) => {
-//   if (file.mimetype.startsWith('image')) {
-//     cb(null, true);
-//   } else {
-//     cb(new Error('Not an image! Please upload an image.'), false);
-//   }
-// };
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: fileFilter
+});
 
-// const upload = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 1024 * 1024 * 5 } }); // 5MB limit
-// --- END OF MULTER SETUP CONCEPT ---
+router.use(protect);
 
-// @route   POST api/wallet/request-topup
-// @desc    User submits a top-up request with payment details and receipt
-// @access  Private (requires user to be logged in)
-// router.post('/request-topup', protect, upload.single('receiptImage'), walletController.submitTopUpRequest);
-// For now, without actual multer setup, let's assume receiptImageUrl is sent in body
-router.post('/request-topup', protect, walletController.submitTopUpRequest);
+router.get('/transactions', walletController.getWalletTransactions);
+router.get('/details', walletController.getWalletDetails);
 
+router.post('/request-topup', upload.single('receipt'), walletController.requestTopUp);
 
-// @route   GET api/wallet/balance
-// @desc    Get current user's wallet balance
-// @access  Private
-router.get('/balance', protect, walletController.getWalletBalance);
-
-// @route   GET api/wallet/transactions
-// @desc    Get current user's transaction history
-// @access  Private
-router.get('/transactions', protect, walletController.getTransactionHistory);
-
-// @route   GET api/wallet/topup-requests
-// @desc    Get current user's top-up request history
-// @access  Private
-router.get('/topup-requests', protect, walletController.getUserTopUpRequests);
-
-router.get('/details', protect, walletController.getWalletDetails);
-
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'File is too large. Maximum size is 5MB.' });
+    }
+    return res.status(400).json({ message: err.message });
+  } else if (err) {
+    if (err.message.startsWith('Not an image!')) {
+        return res.status(400).json({ message: err.message });
+    }
+    return next(err);
+  }
+  next();
+});
 
 module.exports = router;

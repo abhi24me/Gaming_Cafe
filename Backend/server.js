@@ -5,46 +5,49 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-// const path = require('path'); // For serving static files if you save uploads locally
-
-// --- ADD THIS FOR SEEDING ---
+// path is no longer needed here for serving static uploads for receipts
 const seedScreens = require('./seeders/screenSeeder');
-// --- END SEEDING IMPORT ---
 
-// Initialize Express app
+const bcrypt = require('bcryptjs');
+
+async function generateHash() {
+  const plainPassword = '1234567890'; // <-- REPLACE THIS
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(plainPassword, salt);
+  console.log('--- Admin Password Hash ---');
+  console.log('Username:', 'your_chosen_username'); // Reminder for yourself
+  console.log('Plain Password (for reference, DONT USE IN DB):', plainPassword);
+  console.log('BCRYPT HASH (use this in MongoDB):', hashedPassword);
+  console.log('---------------------------');
+}
+
+generateHash(); // Call the function
+// END OF TEMPORARY CODE
+
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- If saving uploads to disk and want to serve them statically (Example) ---
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Static file serving for '/uploads' is removed as images are stored in DB
 
-
-// Import API routes
 const authRoutes = require('./routes/authRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const screenRoutes = require('./routes/screenRoutes');
-const bookingRoutes = require('./routes/bookingRoutes'); // <--- ADD THIS
+const bookingRoutes = require('./routes/bookingRoutes');
 
-// Use API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/screens', screenRoutes);
-app.use('/api/bookings', bookingRoutes); // <--- ADD THIS
+app.use('/api/bookings', bookingRoutes);
 
-
-// Simple Route for testing
 app.get('/', (req, res) => {
   res.send('WelloSphere Backend API is running!');
 });
 
-
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('Successfully connected to MongoDB');
@@ -52,33 +55,19 @@ mongoose.connect(process.env.MONGO_URI)
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
-
-    // --- CALL SEEDER FUNCTION HERE ---
-    // You might want to make this conditional, e.g., only run in development
-    // if (process.env.NODE_ENV === 'development') {
-    //   seedScreens();
-    // }
-    // seedScreens(); // Call unconditionally for now for simplicity
-    // --- END SEEDER CALL ---
-
+    seedScreens();
   })
   .catch((err) => {
     console.error('Database connection error:', err);
     process.exit(1);
   });
 
-// Basic error handling
 app.use((err, req, res, next) => {
-  // Multer error handling (example)
-  // if (err instanceof multer.MulterError) {
-  //   return res.status(400).json({ message: err.message });
-  // } else if (err) {
-  //    // Check if it's our custom "Not an image" error from fileFilter
-  //    if (err.message === 'Not an image! Please upload an image.') {
-  //        return res.status(400).json({ message: err.message });
-  //    }
-  // }
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something broke!' }); // More generic message for other errors
+  console.error("Global Error Handler:", err.name, err.message, err.stack);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({
+     message: err.message || 'An unexpected error occurred on the server.'
+  });
 });
-

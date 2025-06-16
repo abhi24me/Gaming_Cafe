@@ -104,16 +104,16 @@ export default function Header() {
                 {recentTransactions.length > 0 ? (
                   <ScrollArea className="h-auto max-h-48">
                     {recentTransactions.map((txn: Transaction) => (
-                      <DropdownMenuItem key={txn.id} className="focus:bg-card/50 text-xs flex justify-between items-center">
+                      <DropdownMenuItem key={txn._id} className="focus:bg-card/50 text-xs flex justify-between items-center">
                         <div className="flex items-center">
-                          {txn.type === 'top-up' ? (
+                          {txn.type === 'top-up' || txn.type === 'topup-request' ? (
                             <ArrowUpCircle className="h-4 w-4 text-green-500 mr-2 shrink-0" />
                           ) : (
                             <ArrowDownCircle className="h-4 w-4 text-red-500 mr-2 shrink-0" />
                           )}
                           <div className="flex flex-col">
                             <span className="text-foreground truncate max-w-[150px]">{txn.description}</span>
-                            <span className="text-muted-foreground/80">{new Date(txn.date).toLocaleDateString()}</span>
+                            <span className="text-muted-foreground/80">{new Date(txn.timestamp).toLocaleDateString()}</span>
                           </div>
                         </div>
                         <span className={cn("font-medium", txn.amount > 0 ? "text-green-500" : "text-red-500")}>

@@ -28,9 +28,13 @@ async function apiClient<T>(
   const token = typeof window !== 'undefined' ? localStorage.getItem('welloUserToken') : null;
   
   const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
     ...options.headers,
   };
+
+  // Only set Content-Type if body is not FormData
+  if (!(options.body instanceof FormData)) {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -65,3 +69,4 @@ async function apiClient<T>(
 }
 
 export default apiClient;
+

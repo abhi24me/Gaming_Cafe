@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,9 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/contexts/WalletContext';
-import { IndianRupee, WalletCards, CreditCard, Smartphone, Landmark } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useToast } from "@/hooks/use-toast"; // Import useToast for error handling
+import { IndianRupee, WalletCards, UploadCloud, FileImage, XCircle, Loader2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 interface TopUpDialogProps {
   isOpen: boolean;
@@ -26,155 +26,232 @@ interface TopUpDialogProps {
 }
 
 const SUGGESTED_AMOUNTS = [200, 500, 1000];
-const PAYMENT_METHODS = [
-  { id: 'upi', name: 'UPI', icon: Smartphone },
-  { id: 'card', name: 'Credit/Debit Card', icon: CreditCard },
-  { id: 'netbanking', name: 'Net Banking', icon: Landmark },
-];
 
 export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) {
   const [amount, setAmount] = useState<string>('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(PAYMENT_METHODS[0].id);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<'amount' | 'upload'>('amount');
   const [isLoading, setIsLoading] = useState(false);
-  const { requestTopUp, balance } = useWallet(); // Changed from topUp to requestTopUp
+  const { requestTopUp, balance } = useWallet();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset amount when dialog opens or closes
   useEffect(() => {
+    // Reset state when dialog is closed
     if (!isOpen) {
       setAmount('');
-      // Optionally reset payment method too, or keep it sticky
-      // setSelectedPaymentMethod(PAYMENT_METHODS[0].id);
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setCurrentStep('amount');
+      setIsLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""; // Clear file input value
+      }
     }
   }, [isOpen]);
 
-  const handleTopUpRequest = async () => {
-    const topUpAmount = parseFloat(amount);
-    if (isNaN(topUpAmount) || topUpAmount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid positive amount.",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (!selectedPaymentMethod) {
-        toast({
-          title: "Payment Method Required",
-          description: "Please select a payment method.",
-          variant: "destructive"
-        });
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({ title: "File Too Large", description: "Receipt image must be under 5MB.", variant: "destructive" });
+        setReceiptFile(null);
+        setReceiptPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
-
-    setIsLoading(true);
-    // Simulate a transaction ID for the payment method, in a real scenario this would come from a payment gateway
-    const mockTransactionId = `mock_txn_${Date.now()}`;
-    await requestTopUp(topUpAmount, selectedPaymentMethod, mockTransactionId);
-    setIsLoading(false);
-    
-    // requestTopUp already shows a toast on success/failure
-    // Only close dialog if request was initiated (even if it later fails on backend, toast from context handles that)
-    onOpenChange(false); 
-    // setAmount(''); // Reset happens in useEffect onOpenChange
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        toast({ title: "Invalid File Type", description: "Please upload a JPG, PNG, or WEBP image.", variant: "destructive" });
+        setReceiptFile(null);
+        setReceiptPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+      setReceiptFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReceiptPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
+  const clearReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleProceedToUpload = () => {
+    const topUpAmount = parseFloat(amount);
+    if (isNaN(topUpAmount) || topUpAmount <= 0) {
+      toast({ title: "Invalid Amount", description: "Please enter a valid positive amount.", variant: "destructive" });
+      return;
+    }
+    setCurrentStep('upload');
+  };
+
+  const handleSubmitRequest = async () => {
+    const topUpAmount = parseFloat(amount);
+    if (isNaN(topUpAmount) || topUpAmount <= 0) {
+      toast({ title: "Invalid Amount", description: "Please ensure the amount is valid.", variant: "destructive" });
+      return;
+    }
+    if (!receiptFile) {
+      toast({ title: "Receipt Required", description: "Please upload your payment receipt.", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await requestTopUp(topUpAmount, receiptFile);
+      // requestTopUp shows its own toast on success/failure
+      onOpenChange(false); // Close dialog, reset happens in useEffect
+    } catch (error) {
+      // Error handling is inside requestTopUp, but catch here if it re-throws or for local state
+      console.error("Error in handleSubmitRequest after requestTopUp:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const handleSuggestionClick = (suggestedAmount: number) => {
     setAmount(suggestedAmount.toString());
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-background border-glow-accent p-4 sm:p-6">
+    <AlertDialog open={isOpen} onOpenChange={(open) => {
+        if (isLoading) return; // Prevent closing while submitting
+        onOpenChange(open);
+    }}>
+      <AlertDialogContent className="bg-background border-glow-accent p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <div className="flex items-center space-x-2 mb-1 sm:mb-2">
             <WalletCards className="h-6 w-6 sm:h-7 sm:w-7 text-accent" />
-            <AlertDialogTitle className="text-accent text-xl sm:text-2xl">Request Wallet Top-Up</AlertDialogTitle>
+            <AlertDialogTitle className="text-accent text-xl sm:text-2xl">Request Wallet Top-Up (UPI)</AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-foreground/80 pt-1 sm:pt-2 text-xs sm:text-sm">
             Current Balance: <span className="font-semibold text-primary">₹{balance.toFixed(2)}</span>
           </AlertDialogDescription>
-          <AlertDialogDescription className="text-foreground/80 text-xs sm:text-sm">
-            Enter the amount and select a payment method. Your request will be reviewed by an admin.
-          </AlertDialogDescription>
         </AlertDialogHeader>
-        <div className="py-2 sm:py-4 space-y-3 sm:space-y-4">
-          <div>
-            <Label htmlFor="topUpAmount" className="text-foreground/90 text-xs sm:text-sm">
-              Top-Up Amount (₹)
-            </Label>
-            <div className="relative mt-1">
-              <IndianRupee className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              <Input
-                id="topUpAmount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g., 500"
-                className="bg-card border-primary focus:ring-primary pl-8 sm:pl-10 text-base"
-                min="1"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div className="space-y-1 sm:space-y-2">
-            <Label className="text-xs text-muted-foreground">Quick Add:</Label>
-            <div className="flex gap-2">
-              {SUGGESTED_AMOUNTS.map((suggested) => (
-                <Button
-                  key={suggested}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSuggestionClick(suggested)}
-                  className="border-primary/50 hover:bg-primary/10 hover:border-primary text-primary flex-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1.5 h-auto"
-                  disabled={isLoading}
-                >
-                  ₹{suggested}
-                </Button>
-              ))}
-            </div>
-          </div>
 
-          <div className="space-y-2 sm:space-y-3">
-            <Label className="text-xs sm:text-sm text-muted-foreground">Select Payment Method</Label>
-            <RadioGroup 
-              value={selectedPaymentMethod} 
-              onValueChange={setSelectedPaymentMethod}
-              className="space-y-2"
-            >
-              {PAYMENT_METHODS.map((method) => {
-                const Icon = method.icon;
-                return (
-                  <Label 
-                    key={method.id} 
-                    htmlFor={`payment-${method.id}`} 
-                    className={`flex items-center space-x-2 p-2 sm:p-3 bg-card/50 border border-border/70 rounded-md hover:border-primary/70 has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 transition-all ${isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-                  >
-                    <RadioGroupItem 
-                        value={method.id} 
-                        id={`payment-${method.id}`} 
-                        className="border-primary text-primary focus:ring-primary" 
-                        disabled={isLoading}
-                    />
-                    <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    <span className="text-xs sm:text-sm text-foreground/90">{method.name}</span>
-                  </Label>
-                );
-              })}
-            </RadioGroup>
-          </div>
-        </div>
-        <AlertDialogFooter className="gap-2 sm:gap-0 pt-2 sm:pt-4">
-          <AlertDialogCancel asChild>
-            <Button variant="outline" className="border-muted hover:border-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={isLoading}>Cancel</Button>
-          </AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button onClick={handleTopUpRequest} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={isLoading}>
-              {isLoading ? 'Submitting...' : 'Submit Request'}
-            </Button>
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        {currentStep === 'amount' && (
+          <>
+            <div className="py-2 sm:py-4 space-y-3 sm:space-y-4">
+              <div>
+                <Label htmlFor="topUpAmount" className="text-foreground/90 text-xs sm:text-sm">
+                  Top-Up Amount (₹)
+                </Label>
+                <div className="relative mt-1">
+                  <IndianRupee className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                  <Input
+                    id="topUpAmount"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="e.g., 500"
+                    className="bg-card border-primary focus:ring-primary pl-8 sm:pl-10 text-base"
+                    min="1"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <Label className="text-xs text-muted-foreground">Quick Add:</Label>
+                <div className="flex gap-2">
+                  {SUGGESTED_AMOUNTS.map((suggested) => (
+                    <Button
+                      key={suggested}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSuggestionClick(suggested)}
+                      className="border-primary/50 hover:bg-primary/10 hover:border-primary text-primary flex-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1.5 h-auto"
+                    >
+                      ₹{suggested}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <AlertDialogFooter className="gap-2 sm:gap-0 pt-2 sm:pt-4">
+              <AlertDialogCancel asChild>
+                <Button variant="outline" className="border-muted hover:border-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto">Cancel</Button>
+              </AlertDialogCancel>
+              <Button onClick={handleProceedToUpload} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={!amount || parseFloat(amount) <= 0}>
+                Proceed to payment
+              </Button>
+            </AlertDialogFooter>
+          </>
+        )}
+
+        {currentStep === 'upload' && (
+          <>
+            <div className="py-2 sm:py-4 space-y-3 sm:space-y-4">
+              <AlertDialogDescription className="text-foreground/80 text-xs sm:text-sm">
+                Scan the QR code with your UPI app to pay <span className="font-semibold text-primary">₹{amount}</span>. Then, upload the payment receipt (screenshot).
+              </AlertDialogDescription>
+              
+              <div className="flex justify-center my-3 sm:my-4">
+                <Image 
+                  src="/upi-qr-code.png" 
+                  alt="UPI QR Code" 
+                  width={180} 
+                  height={180}
+                  className="rounded-md border-2 border-primary shadow-lg"
+                  data-ai-hint="QR code"
+                  priority 
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="receiptUpload" className="text-foreground/90 text-xs sm:text-sm">
+                  Upload Payment Receipt (JPG, PNG, WEBP, max 5MB)
+                </Label>
+                <div className="mt-1 flex items-center justify-center w-full">
+                    <label htmlFor="receiptUpload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-primary border-dashed rounded-lg cursor-pointer bg-card hover:bg-card/90 transition-colors">
+                        {receiptPreview ? (
+                            <div className="relative w-full h-full flex items-center justify-center">
+                                <Image src={receiptPreview} alt="Receipt preview" layout="fill" objectFit="contain" className="p-1 rounded" data-ai-hint="payment receipt"/>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <UploadCloud className="w-8 h-8 mb-2 text-primary" />
+                                <p className="mb-1 text-xs sm:text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-muted-foreground">Image file (MAX. 5MB)</p>
+                            </div>
+                        )}
+                        <Input id="receiptUpload" type="file" className="hidden" onChange={handleFileChange} accept="image/jpeg,image/png,image/webp" ref={fileInputRef} />
+                    </label>
+                </div>
+              </div>
+
+              {receiptPreview && (
+                 <div className="mt-2 text-center">
+                    <Button variant="ghost" size="sm" onClick={clearReceipt} className="text-destructive hover:bg-destructive/10 text-xs">
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> Clear Receipt
+                    </Button>
+                </div>
+              )}
+            </div>
+            <AlertDialogFooter className="gap-2 sm:gap-0 pt-2 sm:pt-4">
+              <Button variant="outline" onClick={() => setCurrentStep('amount')} className="border-muted hover:border-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={isLoading}>Back</Button>
+              <Button onClick={handleSubmitRequest} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={isLoading || !receiptFile}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Request'
+                )}
+              </Button>
+            </AlertDialogFooter>
+          </>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );
 }
+

@@ -1,63 +1,70 @@
+
 const mongoose = require('mongoose');
 
 const topUpRequestSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'User is required for a top-up request']
+    required: true,
   },
   amount: {
     type: Number,
-    required: [true, 'Requested amount is required'],
-    min: [1, 'Amount must be at least 1'] // Assuming a minimum top-up amount
-  },
-  // User-provided UPI transaction ID / reference number from their payment app
-  upiTransactionId: {
-    type: String,
-    required: [true, 'UPI transaction ID is required'],
-    trim: true
-  },
-  // URL or path to the uploaded receipt image.
-  // Actual file upload handling will be done in the controller/service layer.
-  receiptImageUrl: {
-    type: String,
-    required: [true, 'Receipt image URL is required'],
-    trim: true
+    required: [true, 'Top-up amount is required.'],
+    min: [1, 'Top-up amount must be at least 1.'],
   },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
-    required: true
+  },
+  paymentMethod: {
+    type: String,
+    required: true,
+    default: 'UPI',
+  },
+  // Removed upiTransactionId
+  // receiptImageUrl and receiptFilename are replaced by receiptData and receiptMimeType
+  receiptData: {
+    type: Buffer, // Storing the image data directly
+    required: [true, 'Receipt image data is required.'],
+  },
+  receiptMimeType: {
+    type: String, // E.g., 'image/jpeg', 'image/png'
+    required: [true, 'Receipt image MIME type is required.'],
   },
   requestedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
-  adminNotes: { // Notes from admin during review (e.g., reason for rejection)
-    type: String,
-    trim: true
-  },
-  reviewedBy: { // Reference to the admin User who reviewed this (if you have admin roles)
+  reviewedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Or an 'Admin' model if you have one
-    default: null
+    ref: 'Admin',
   },
   reviewedAt: {
     type: Date,
-    default: null
   },
-  // This field will link to the actual transaction created upon approval
+  adminNotes: {
+    type: String,
+    trim: true,
+  },
   relatedTransaction: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Transaction',
-    default: null
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
-// Indexes
-topUpRequestSchema.index({ user: 1, status: 1, requestedAt: -1 }); // For fetching user's requests or admin's pending list
-topUpRequestSchema.index({ status: 1, requestedAt: -1 }); // For admins to fetch all pending requests
+topUpRequestSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
+});
 
 const TopUpRequest = mongoose.model('TopUpRequest', topUpRequestSchema);
 

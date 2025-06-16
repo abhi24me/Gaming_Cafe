@@ -5,10 +5,10 @@ import type { TopUpRequestFromAPI } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Mail, Landmark, CheckCircle, XCircle, AlertTriangle, Loader2, Image as ImageIcon } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import apiClient, { ApiError } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image'; // For displaying the receipt if it's a URL
+import NextImage from 'next/image'; // Renamed to avoid conflict with Lucide's Image
 
 interface PendingRequestCardProps {
   request: TopUpRequestFromAPI;
@@ -18,16 +18,24 @@ interface PendingRequestCardProps {
 export default function PendingRequestCard({ request, onActionSuccess }: PendingRequestCardProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL; // To construct full image URL if needed
+  const [receiptDisplayUrl, setReceiptDisplayUrl] = useState<string>('https://placehold.co/300x200.png?text=No+Receipt');
 
-  // Construct receipt image URL - This assumes your backend serves images from a specific path
-  // If `receiptData` is a base64 string, you'd use that directly in an <img> src.
-  // For now, let's assume `receiptImageUrl` will be provided or constructed.
-  // If the backend stores images as buffers and doesn't provide a URL,
-  // we'd need an endpoint to fetch the image by request ID.
-  const receiptDisplayUrl = request.receiptImageUrl 
-    ? (API_URL ? `${API_URL.replace('/api','')}${request.receiptImageUrl}` : request.receiptImageUrl) 
-    : (request.receiptData ? `data:${request.receiptMimeType};base64,${Buffer.from(request.receiptData.data).toString('base64')}` : 'https://placehold.co/300x200.png?text=No+Receipt');
+  useEffect(() => {
+    let url = 'https://placehold.co/300x200.png?text=Processing...';
+    if (request.receiptData && request.receiptMimeType && Array.isArray(request.receiptData.data)) {
+      try {
+        const buffer = Buffer.from(request.receiptData.data);
+        const base64String = buffer.toString('base64');
+        url = `data:${request.receiptMimeType};base64,${base64String}`;
+      } catch (e) {
+        console.error("Error converting receiptData to base64:", e);
+        url = 'https://placehold.co/300x200.png?text=Error+Displaying';
+      }
+    } else if (!request.receiptData) {
+        url = 'https://placehold.co/300x200.png?text=No+Receipt+Data';
+    }
+    setReceiptDisplayUrl(url);
+  }, [request.receiptData, request.receiptMimeType]);
 
 
   const handleApprove = async () => {
@@ -35,7 +43,7 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
     try {
       await apiClient(`/admin/topup-requests/${request._id}/approve`, { method: 'PUT' });
       toast({ title: "Request Approved", description: `Request ID ${request._id.slice(-6)} has been approved.`, className: "bg-green-600 text-white border-green-700" });
-      onActionSuccess(); // Refresh the list in the parent component
+      onActionSuccess(); 
     } catch (error) {
       toast({ title: "Approval Failed", description: error instanceof ApiError ? error.message : "Could not approve request.", variant: "destructive" });
     } finally {
@@ -44,8 +52,9 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
   };
 
   const handleReject = async () => {
-    // Potentially add a dialog here to get adminNotes for rejection
     const adminNotes = prompt("Enter reason for rejection (optional):");
+    if (adminNotes === null) return; // User cancelled prompt
+
     setIsProcessing(true);
     try {
       await apiClient(`/admin/topup-requests/${request._id}/reject`, { 
@@ -85,12 +94,11 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
           Requested: {new Date(request.requestedAt).toLocaleString()}
         </p>
         
-        {/* Receipt Image Display */}
         <div className="mt-3 pt-3 border-t">
             <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Payment Receipt:</h4>
-            {receiptDisplayUrl.startsWith('data:') || receiptDisplayUrl.startsWith('http') ? (
-                 <a href={receiptDisplayUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-40 sm:h-48 rounded border border-border overflow-hidden group">
-                    <Image 
+            {(receiptDisplayUrl.startsWith('data:') || receiptDisplayUrl.startsWith('http')) && !receiptDisplayUrl.includes('Processing...') ? (
+                 <a href={receiptDisplayUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-40 sm:h-48 rounded border border-border overflow-hidden group bg-muted/20">
+                    <NextImage 
                         src={receiptDisplayUrl}
                         alt={`Receipt for request ${request._id}`}
                         layout="fill"
@@ -104,8 +112,8 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
                 </a>
             ) : (
                 <div className="flex items-center justify-center h-32 bg-muted/50 rounded border border-dashed text-muted-foreground">
-                    <AlertTriangle className="h-6 w-6 mr-2"/>
-                    <p>Receipt not available</p>
+                    {receiptDisplayUrl.includes('Processing...') ? <Loader2 className="h-6 w-6 animate-spin"/> : <AlertTriangle className="h-6 w-6 mr-2"/>}
+                    <p className="ml-2">{receiptDisplayUrl.includes('Processing...') ? 'Loading image...' : 'Receipt not available'}</p>
                 </div>
             )}
         </div>

@@ -12,7 +12,7 @@ const app = express();
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-  'https://gaming-cafe-admin-frontend-a204butz5.vercel.app',
+  'https://gaming-cafe-admin-frontend.vercel.app',
   'https://gaming-cafe-frontend.vercel.app'
 ];
 

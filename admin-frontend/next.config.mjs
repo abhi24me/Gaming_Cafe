@@ -2,16 +2,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
-    // If you plan to display images from your backend (e.g., receipts)
-    // and they are served from a different domain or path, configure images here.
-    // For now, assuming receipts might be served via a backend endpoint that returns image data directly.
     images: {
       remotePatterns: [
         {
-          protocol: 'http', // or 'https' if your backend API uses SSL
-          hostname: 'localhost', // or your backend API hostname
-          port: '5000', // or your backend API port
-          pathname: '/api/admin/topup-requests/**/receipt', // Example path if backend serves images this way
+          protocol: 'https', // placehold.co uses https
+          hostname: 'placehold.co',
+          port: '', // Default port for https is 443, so empty string is fine
+          pathname: '/**', // Allow any path on this hostname
+        },
+        // Preserve existing configuration for localhost if still needed
+        {
+          protocol: 'http', 
+          hostname: 'localhost', 
+          port: '5000', 
+          pathname: '/api/admin/topup-requests/**/receipt', 
         },
       ],
     }

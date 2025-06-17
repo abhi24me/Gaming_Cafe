@@ -21,6 +21,11 @@ router.use(protectAdmin);
 // @access  Admin
 router.get('/topup-requests/pending', adminController.getPendingTopUpRequests);
 
+// @route   GET api/admin/topup-requests/history
+// @desc    Admin gets a history of all top-up requests
+// @access  Admin
+router.get('/topup-requests/history', adminController.getTopUpRequestHistory);
+
 // @route   PUT api/admin/topup-requests/:requestId/approve
 // @desc    Admin approves a top-up request
 // @access  Admin
@@ -32,3 +37,4 @@ router.put('/topup-requests/:requestId/approve', adminController.approveTopUpReq
 router.put('/topup-requests/:requestId/reject', adminController.rejectTopUpRequest);
 
 module.exports = router;
+    

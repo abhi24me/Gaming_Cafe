@@ -12,21 +12,23 @@ const app = express();
 
 // --- CORS Configuration ---
 const allowedOrigins = [
+  'http://192.168.1.13:9002',
+  'http://localhost:9002',
+  'http://localhost:3000',
   'https://gaming-cafe-admin-frontend.vercel.app',
   'https://gaming-cafe-frontend.vercel.app'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}.`;
+      callback(new Error(msg), false);
     }
-    return callback(null, true);
   },
-  credentials: true, // If you need to send cookies or authorization headers
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
@@ -58,7 +60,7 @@ app.use('/api/bookings', bookingRoutes);
 
 // Simple root handler for Vercel to check if the app is alive
 app.get('/', (req, res) => {
-  res.send('WelloSphere Backend API is running on Vercel!');
+  res.send('WelloSphere Backend API is running!');
 });
 
 // Global error handler
@@ -81,6 +83,8 @@ const MONGODB_URI = process.env.MONGO_URI;
 
 if (!MONGODB_URI) {
   console.error("FATAL ERROR: MONGO_URI is not defined in .env");
+  // For local development, if MONGO_URI is not set, we might want to prevent the server from trying to start
+  // or at least make it clear it won't connect to a DB.
 }
 
 async function connectMongo() {
@@ -90,7 +94,7 @@ async function connectMongo() {
       serverSelectionTimeoutMS: 5000,
     }).then((mongooseInstance) => {
       console.log('Successfully connected to MongoDB.');
-      // seedScreens(); // Best to run seeding locally or via a separate script
+      // seedScreens(); // Best to run seeding locally or via a separate script for deployment
       return mongooseInstance;
     }).catch(err => {
       console.error('Database connection error:', err);
@@ -104,16 +108,36 @@ async function connectMongo() {
   return conn;
 }
 
+const PORT = process.env.PORT || 5000;
+
+// Start server for local development if not in Vercel environment
+if (process.env.VERCEL_ENV !== 'production' && process.env.VERCEL_ENV !== 'preview' && process.env.VERCEL_ENV !== 'development') {
+  (async () => {
+    try {
+      if (MONGODB_URI) {
+        await connectMongo();
+      }
+      app.listen(PORT, () => {
+        console.log(`Backend server running locally on http://localhost:${PORT}`);
+      });
+    } catch (error) {
+      console.error("Failed to start local server:", error);
+      process.exit(1); // Exit if local server can't start (e.g., DB connection failed critically)
+    }
+  })();
+}
+
+// Export the app for Vercel
 module.exports = async (req, res) => {
   try {
     if (MONGODB_URI) {
       await connectMongo();
-    } else {
-       // If it's an API route that needs DB, it will fail later.
     }
     app(req, res);
   } catch (error) {
-    console.error("Handler error (DB connection or app processing):", error);
-    res.status(500).json({ message: "Internal Server Error. Please check server logs." });
+    console.error("Vercel Handler error (DB connection or app processing):", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Internal Server Error. Please check server logs." });
+    }
   }
 };

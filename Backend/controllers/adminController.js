@@ -57,6 +57,7 @@ exports.getPendingTopUpRequests = async (req, res) => {
   try {
     const pendingRequests = await TopUpRequest.find({ status: 'pending' })
       .populate('user', 'gamerTag email walletBalance') // Populate relevant user details
+      .populate('reviewedBy', 'username') // Populate admin who reviewed
       .sort({ requestedAt: 1 }); // Oldest first
     res.status(200).json(pendingRequests);
   } catch (error) {
@@ -64,6 +65,23 @@ exports.getPendingTopUpRequests = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching pending requests.' });
   }
 };
+
+// @desc    Admin gets a history of all top-up requests (pending, approved, rejected)
+// @route   GET /api/admin/topup-requests/history
+// @access  Admin (Protected by protectAdmin)
+exports.getTopUpRequestHistory = async (req, res) => {
+  try {
+    const allRequests = await TopUpRequest.find({}) // Find all requests regardless of status
+      .populate('user', 'gamerTag email') // Populate user details
+      .populate('reviewedBy', 'username') // Populate admin who reviewed, if any
+      .sort({ requestedAt: -1 }); // Newest first
+    res.status(200).json(allRequests);
+  } catch (error) {
+    console.error('Get TopUp Request History Error:', error);
+    res.status(500).json({ message: 'Server error while fetching request history.' });
+  }
+};
+
 
 // @desc    Admin approves a top-up request
 // @route   PUT /api/admin/topup-requests/:requestId/approve
@@ -119,7 +137,7 @@ exports.approveTopUpRequest = async (req, res) => {
       loyaltyPointsChange: 0,
       loyaltyPointsBalanceBefore: loyaltyPointsBalanceBefore,
       loyaltyPointsBalanceAfter: userToCredit.loyaltyPoints,
-      performedBy: adminId,
+      performedBy: adminId, // Storing admin ID who performed the action
       timestamp: new Date()
     });
     await newTransaction.save({ session });
@@ -135,7 +153,7 @@ exports.approveTopUpRequest = async (req, res) => {
 
     res.status(200).json({
         message: 'Top-up request approved successfully.',
-        request: await TopUpRequest.findById(requestId).populate('user', 'gamerTag email') // Send back populated request
+        request: await TopUpRequest.findById(requestId).populate('user', 'gamerTag email').populate('reviewedBy', 'username')
     });
 
   } catch (error) {
@@ -177,7 +195,7 @@ exports.rejectTopUpRequest = async (req, res) => {
 
     res.status(200).json({
         message: 'Top-up request rejected.',
-        request: await TopUpRequest.findById(requestId).populate('user', 'gamerTag email') // Send back populated request
+        request: await TopUpRequest.findById(requestId).populate('user', 'gamerTag email').populate('reviewedBy', 'username')
     });
 
   } catch (error) {
@@ -185,3 +203,4 @@ exports.rejectTopUpRequest = async (req, res) => {
     res.status(500).json({ message: 'Server error while rejecting request.' });
   }
 };
+    

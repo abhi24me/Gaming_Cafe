@@ -31,12 +31,13 @@ export interface TopUpRequestFromAPI {
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
   paymentMethod: string;
-  // upiTransactionId?: string; // Backend model doesn't have this, ensure consistency
-  receiptData?: { type: 'Buffer'; data: number[] }; // How Buffer is often serialized
+  receiptData?: { type: 'Buffer'; data: number[] }; 
   receiptMimeType?: string;
-  // receiptImageUrl is NOT sent by the backend with the pending list directly
   requestedAt: string; // ISO date string
-  reviewedBy?: string; // Admin ID
+  reviewedBy?: { // Now expecting an object if populated
+    _id: string;
+    username: string;
+  } | null; // Can be null if not reviewed yet or if population fails
   reviewedAt?: string; // ISO date string
   adminNotes?: string;
 }
@@ -46,3 +47,4 @@ export interface ApiErrorResponse {
   message: string;
   errors?: { field: string; message: string }[];
 }
+    

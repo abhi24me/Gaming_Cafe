@@ -13,13 +13,13 @@ import { UserPlus } from 'lucide-react';
 export default function SignupPage() {
   const [gamerTagInput, setGamerTagInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState(''); // Will store only 10 digits
   const [passwordInput, setPasswordInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const [gamerTagError, setGamerTagError] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [phoneError, setPhoneError] = useState(''); // Phone validation can be kept if desired for frontend check
+  const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
   const { signup } = useAuth();
@@ -50,12 +50,13 @@ export default function SignupPage() {
       isValid = false;
     }
     
-    // Phone number is optional on backend, so validation can be less strict or removed client-side
-    // if (phoneInput.trim() && !/^\+\d{10,15}$/.test(phoneInput.replace(/\s/g, ''))) {
-    //   setPhoneError('Enter a valid phone number (e.g., +91 XXXXXXXXXX) or leave blank.');
-    //   isValid = false;
-    // }
-
+    // Validate phone number: optional, but if provided, must be 10 digits
+    if (phoneInput.trim()) {
+      if (!/^\d{10}$/.test(phoneInput.trim())) {
+        setPhoneError('Phone number must be 10 digits.');
+        isValid = false;
+      }
+    }
 
     if (!passwordInput) {
       setPasswordError('Password is required.');
@@ -72,9 +73,16 @@ export default function SignupPage() {
     e.preventDefault();
     if (validateForm()) {
       setIsLoading(true);
-      await signup(gamerTagInput.trim(), emailInput.trim(), passwordInput, phoneInput.trim() || undefined);
+      const formattedPhone = phoneInput.trim() ? `+91${phoneInput.trim()}` : undefined;
+      await signup(gamerTagInput.trim(), emailInput.trim(), passwordInput, formattedPhone);
       setIsLoading(false);
     }
+  };
+
+  const handlePhoneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    setPhoneInput(value.slice(0, 10)); // Limit to 10 digits
+    if (phoneError) validateForm(); // Re-validate if there was an error
   };
 
   return (
@@ -128,21 +136,24 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="phoneSignup" className="text-foreground/90">Phone Number (Optional)</Label>
-            <Input
-              id="phoneSignup"
-              type="tel"
-              placeholder="+91 XXXXXXXXXX"
-              value={phoneInput}
-              onChange={(e) => {
-                setPhoneInput(e.target.value);
-                if (phoneError) validateForm();
-              }}
-              className={`bg-background text-base ${phoneError ? 'border-destructive focus:ring-destructive' : 'border-primary focus:ring-primary'}`}
-              aria-describedby="phoneError"
-              aria-invalid={!!phoneError}
-              disabled={isLoading}
-            />
+            <Label htmlFor="phoneSignup" className="text-foreground/90">Phone Number (Optional, 10 digits)</Label>
+            <div className="flex items-center">
+              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-primary bg-card text-muted-foreground text-sm h-10">
+                +91
+              </span>
+              <Input
+                id="phoneSignup"
+                type="tel" 
+                placeholder="XXXXXXXXXX"
+                value={phoneInput}
+                onChange={handlePhoneInputChange}
+                className={`bg-background text-base rounded-l-none ${phoneError ? 'border-destructive focus:ring-destructive' : 'border-primary focus:ring-primary'}`}
+                aria-describedby="phoneError"
+                aria-invalid={!!phoneError}
+                disabled={isLoading}
+                maxLength={10}
+              />
+            </div>
             {phoneError && <p id="phoneError" className="text-xs text-destructive mt-1">{phoneError}</p>}
           </div>
 

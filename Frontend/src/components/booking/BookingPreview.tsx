@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, CalendarDays, Clock, Tag } from 'lucide-react';
 import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
 
 interface BookingPreviewProps {
   screen: Screen;
@@ -16,6 +17,24 @@ interface BookingPreviewProps {
 }
 
 export default function BookingPreview({ screen, date, slot, onConfirm, onBack }: BookingPreviewProps) {
+  const [displaySlotTime, setDisplaySlotTime] = useState<string>('');
+
+  useEffect(() => {
+    if (slot?.startTimeUTC && slot?.endTimeUTC) {
+      try {
+        const options: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+        const localStart = new Date(slot.startTimeUTC).toLocaleTimeString([], options);
+        const localEnd = new Date(slot.endTimeUTC).toLocaleTimeString([], options);
+        setDisplaySlotTime(`${localStart} - ${localEnd}`);
+      } catch (e) {
+        console.error("Error formatting slot time for preview:", e);
+        setDisplaySlotTime(slot.time); // Fallback to original time string
+      }
+    } else if (slot) {
+      setDisplaySlotTime(slot.time); // Fallback if UTC times are not present
+    }
+  }, [slot]);
+
   return (
     <Card className="bg-card/90 backdrop-blur-sm border-glow-accent w-full max-w-lg mx-auto overflow-hidden">
       <CardHeader className="relative p-0">
@@ -50,10 +69,10 @@ export default function BookingPreview({ screen, date, slot, onConfirm, onBack }
           <Clock className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
           <div>
             <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Time</span>
-            <p className="text-sm sm:text-md font-medium">{slot.time}</p>
+            <p className="text-sm sm:text-md font-medium">{displaySlotTime || 'Calculating...'}</p>
           </div>
         </div>
-        {slot.price && (
+        {slot.price !== undefined && ( // Check for undefined instead of just slot.price for robustness
           <div className="flex items-center p-2 sm:p-3 bg-background/40 rounded-lg border border-border/70 shadow-sm hover:border-primary/50 transition-all">
             <Tag className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             <div>

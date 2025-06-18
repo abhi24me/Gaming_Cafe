@@ -21,7 +21,7 @@ export default function WalletPage() {
         <WalletTransactions />
 
         <Separator className="my-8 sm:my-10 bg-border/50" />
-
+{/* 
         <div className="max-w-2xl mx-auto">
           <h3 className="text-xl sm:text-2xl font-semibold text-center mb-4 sm:mb-6 text-primary flex items-center justify-center">
             <BellDot className="mr-2 h-5 w-5 sm:h-6 sm:w-6" /> Notification Preferences
@@ -61,7 +61,7 @@ export default function WalletPage() {
               )}
             </CardContent>
           </Card>
-        </div>
+        </div> */}
     </div>
   );
 }

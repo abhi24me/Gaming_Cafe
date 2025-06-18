@@ -82,7 +82,25 @@ export default function HomePage() {
       try {
         const formattedDate = date.toLocaleDateString('en-CA'); // YYYY-MM-DD for API query
         const slotsData = await apiClient<ScreenAvailabilityResponse>(`/screens/${selectedScreen._id}/availability?date=${formattedDate}`);
-        setAvailableSlots(slotsData.slots || []);
+        
+        let processedSlots = slotsData.slots || [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); 
+
+        if (date.toDateString() === today.toDateString()) {
+          const nowClient = new Date(); 
+          processedSlots = processedSlots.map(slot => {
+            if (slot.startTimeUTC) {
+              const slotStartTimeClient = new Date(slot.startTimeUTC);
+              if (slotStartTimeClient < nowClient) {
+                return { ...slot, isAvailable: false };
+              }
+            }
+            return slot;
+          });
+        }
+        setAvailableSlots(processedSlots);
+
       } catch (error) {
         toast({ title: "Error Fetching Time Slots", description: (error as ApiError).message || "Could not load time slots.", variant: "destructive" });
         setAvailableSlots([]);
@@ -115,7 +133,7 @@ export default function HomePage() {
         description: "Please ensure screen, date, and time are selected.",
         variant: "destructive",
       });
-      setBookingStep('screen'); // Reset to start
+      setBookingStep('screen'); 
       setSelectedScreen(null);
       setSelectedDate(undefined);
       setSelectedTimeSlot(null);
@@ -124,30 +142,42 @@ export default function HomePage() {
   };
   
   const handleBookingConfirm = async (gamerTag: string) => {
-    if (currentBookingDetails.screen?._id && currentBookingDetails.slot && currentBookingDetails.date) {
+    if (currentBookingDetails.screen?._id && currentBookingDetails.slot?.id && currentBookingDetails.slot?.startTimeUTC && currentBookingDetails.date && currentBookingDetails.slot.price !== undefined) {
       setIsSubmittingBooking(true);
       const bookingPayload = {
         screenId: currentBookingDetails.screen._id,
-        date: currentBookingDetails.date.toLocaleDateString('en-CA'), // YYYY-MM-DD for backend
-        timeSlot: currentBookingDetails.slot.time, // The "HH:MM AM/PM - HH:MM AM/PM" string
-        pricePaid: currentBookingDetails.slot.price || 0,
+        date: currentBookingDetails.date.toLocaleDateString('en-CA'), 
+        slotId: currentBookingDetails.slot.id,
+        startTimeUTC: currentBookingDetails.slot.startTimeUTC, // Send the exact UTC start time of the slot
+        pricePaid: currentBookingDetails.slot.price,
         gamerTag: gamerTag,
       };
 
       try {
-        // Backend returns BookingCreationResponse which includes booking, transaction, newBalance, newLoyaltyPoints
         await apiClient<BookingCreationResponse>('/bookings', {
           method: 'POST',
           body: JSON.stringify(bookingPayload),
         });
         
+        // Format display time for toast using slot's UTC times
+        let displaySlotTime = currentBookingDetails.slot.time; // Fallback
+        if (currentBookingDetails.slot.startTimeUTC && currentBookingDetails.slot.endTimeUTC) {
+            try {
+                const options: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+                const localStart = new Date(currentBookingDetails.slot.startTimeUTC).toLocaleTimeString([], options);
+                const localEnd = new Date(currentBookingDetails.slot.endTimeUTC).toLocaleTimeString([], options);
+                displaySlotTime = `${localStart} - ${localEnd}`;
+            } catch (e) { /* ignore, use fallback */ }
+        }
+
+
         toast({
           title: "Booking Confirmed! 🎉",
-          description: `Session for ${gamerTag} on ${currentBookingDetails.screen.name} at ${currentBookingDetails.slot.time} is booked. Cost: ₹${(currentBookingDetails.slot.price || 0).toFixed(2)}.`,
+          description: `Session for ${gamerTag} on ${currentBookingDetails.screen.name} at ${displaySlotTime} is booked. Cost: ₹${(currentBookingDetails.slot.price || 0).toFixed(2)}.`,
           className: "bg-green-600 text-white border-green-700",
         });
 
-        await fetchWalletData(); // Refresh wallet balance and loyalty points from context
+        await fetchWalletData(); 
 
         setIsConfirmDialogOpen(false);
         setBookingStep('screen');
@@ -167,6 +197,13 @@ export default function HomePage() {
       } finally {
         setIsSubmittingBooking(false);
       }
+    } else {
+        toast({
+            title: "Booking Error",
+            description: "Missing critical booking details. Please try again.",
+            variant: "destructive",
+        });
+        setIsSubmittingBooking(false); // Ensure loading state is reset
     }
   };
 

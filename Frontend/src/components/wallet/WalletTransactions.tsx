@@ -7,28 +7,67 @@ import type { Transaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PlusCircle, ArrowUpCircle, ArrowDownCircle, IndianRupee, History } from 'lucide-react';
+import { PlusCircle, ArrowUpCircle, ArrowDownCircle, IndianRupee, History, AlertTriangle, Clock, Ban, CheckCircle } from 'lucide-react';
 import TopUpDialog from '@/components/wallet/TopUpDialog';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface DisplayTransaction extends Transaction {
   formattedDate: string | null;
 }
 
 export default function WalletTransactions() {
-  const { balance, transactions } = useWallet();
+  const { balance, transactions, fetchWalletData } = useWallet(); 
   const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
   const [clientFormattedTransactions, setClientFormattedTransactions] = useState<DisplayTransaction[]>([]);
 
   useEffect(() => {
-    const sorted = [...transactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setClientFormattedTransactions(
-      sorted.map(txn => ({
+      transactions.map(txn => ({
         ...txn,
-        formattedDate: new Date(txn.date).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+        formattedDate: txn.timestamp ? new Date(txn.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) : 'Date N/A'
       }))
     );
   }, [transactions]);
+  
+  const handleDialogClose = (open: boolean) => {
+    setIsTopUpDialogOpen(open);
+    if (!open) {
+      fetchWalletData(); 
+    }
+  };
+
+
+  const getTransactionIcon = (txn: DisplayTransaction) => {
+    if (txn.type === 'topup-request') {
+      if (txn.status === 'pending') return <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-yellow-500 mr-2 sm:mr-3 shrink-0" />;
+      if (txn.status === 'rejected') return <Ban className="h-4 w-4 sm:h-6 sm:w-6 text-red-500 mr-2 sm:mr-3 shrink-0" />;
+    }
+    // Approved top-up requests that became actual 'top-up' transactions get ArrowUpCircle
+    if (txn.type === 'top-up') return <ArrowUpCircle className="h-4 w-4 sm:h-6 sm:w-6 text-green-500 mr-2 sm:mr-3 shrink-0" />;
+    if (txn.type === 'booking-fee') return <ArrowDownCircle className="h-4 w-4 sm:h-6 sm:w-6 text-red-500 mr-2 sm:mr-3 shrink-0" />;
+    return <AlertTriangle className="h-4 w-4 sm:h-6 sm:w-6 text-muted-foreground mr-2 sm:mr-3 shrink-0" />; 
+  };
+
+  const getStatusBadge = (txn: DisplayTransaction) => {
+    if (txn.type === 'topup-request' && txn.status) {
+      let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+      let textAndBorderClass = "";
+      if (txn.status === 'pending') { 
+        variant = "secondary"; 
+        textAndBorderClass = "bg-yellow-400/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/50";
+      } else if (txn.status === 'rejected') { 
+        variant = "destructive"; 
+        textAndBorderClass = "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/50";
+      }
+      return <Badge variant={variant} className={cn("capitalize text-xs ml-2 px-1.5 py-0.5", textAndBorderClass)}>{txn.status}</Badge>;
+    }
+     if (txn.type === 'top-up' && txn.status === 'approved') { 
+      return <Badge variant="default" className="capitalize text-xs ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/50">Approved</Badge>;
+    }
+    return null;
+  };
+
 
   return (
     <>
@@ -41,7 +80,7 @@ export default function WalletTransactions() {
               {balance.toFixed(2)}
             </CardTitle>
           </div>
-          <Button onClick={() => setIsTopUpDialogOpen(true)} className="btn-glow-primary btn-gradient-primary-accent text-xs sm:text-base px-3 py-1.5 sm:px-4 sm:py-2"> {/* Changed to primary-accent gradient */}
+          <Button onClick={() => setIsTopUpDialogOpen(true)} className="btn-glow-primary btn-gradient-primary-accent text-xs sm:text-base px-3 py-1.5 sm:px-4 sm:py-2">
             <PlusCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-5 sm:w-5" />
             Top Up Wallet
           </Button>
@@ -56,29 +95,36 @@ export default function WalletTransactions() {
               <div className="space-y-2 sm:space-y-3">
                 {clientFormattedTransactions.map((txn: DisplayTransaction) => (
                   <div
-                    key={txn.id}
+                    key={txn._id} 
                     className="flex items-center justify-between p-2 sm:p-3 bg-background/40 rounded-lg border border-border/70 shadow-sm hover:border-primary/50 transition-all"
                   >
-                    <div className="flex items-center">
-                      {txn.type === 'top-up' ? (
-                        <ArrowUpCircle className="h-4 w-4 sm:h-6 sm:w-6 text-green-500 mr-2 sm:mr-3 shrink-0" />
-                      ) : (
-                        <ArrowDownCircle className="h-4 w-4 sm:h-6 sm:w-6 text-red-500 mr-2 sm:mr-3 shrink-0" />
-                      )}
-                      <div>
-                        <p className="font-medium text-foreground text-xs sm:text-base">{txn.description}</p>
+                    <div className="flex items-center flex-1 min-w-0"> 
+                      {getTransactionIcon(txn)}
+                      <div className="flex-1 min-w-0"> 
+                        <div className="flex items-center">
+                            <p className="font-medium text-foreground text-xs sm:text-base truncate">{txn.description}</p>
+                            {getStatusBadge(txn)}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {txn.formattedDate || 'Loading date...'}
                         </p>
+                         {txn.type === 'topup-request' && txn.status === 'rejected' && txn.adminNotes && (
+                           <p className="text-xs text-destructive mt-0.5">Note: {txn.adminNotes}</p>
+                         )}
                       </div>
                     </div>
                     <span
                       className={cn(
-                        "text-sm sm:text-lg font-semibold",
-                        txn.amount > 0 ? "text-green-500" : "text-red-500" // Consider using secondary for positive amounts
+                        "text-sm sm:text-lg font-semibold ml-2 whitespace-nowrap",
+                        txn.type === 'booking-fee' ? "text-red-500" :
+                        (txn.type === 'topup-request' && txn.status === 'rejected') ? "text-red-500 line-through" : 
+                        (txn.type === 'topup-request' && txn.status === 'pending') ? "text-yellow-600 dark:text-yellow-400" :
+                        "text-green-500" 
                       )}
                     >
-                      {txn.amount > 0 ? `+₹${txn.amount.toFixed(2)}` : `-₹${Math.abs(txn.amount).toFixed(2)}`}
+                      {txn.type !== 'booking-fee' && txn.amount >= 0 ? `+₹${txn.amount.toFixed(2)}` :
+                       txn.type === 'booking-fee' ? `-₹${Math.abs(txn.amount).toFixed(2)}` :
+                       `₹${txn.amount.toFixed(2)}`} 
                     </span>
                   </div>
                 ))}
@@ -89,7 +135,7 @@ export default function WalletTransactions() {
           )}
         </CardContent>
       </Card>
-      <TopUpDialog isOpen={isTopUpDialogOpen} onOpenChange={setIsTopUpDialogOpen} />
+      <TopUpDialog isOpen={isTopUpDialogOpen} onOpenChange={handleDialogClose} />
     </>
   );
 }

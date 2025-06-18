@@ -2,6 +2,7 @@
 const TopUpRequest = require('../models/TopUpRequest');
 const User = require('../models/User'); // Needed for user search in history
 const Admin = require('../models/Admin');
+const Transaction = require('../models/Transaction'); // Added this line
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 

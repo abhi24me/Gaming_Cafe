@@ -79,7 +79,11 @@ export default function TopUpHistoryPage() {
     setEndDate('');
     setAdminUsernameQuery('');
     setUserSearchQuery('');
-    // fetchHistory will be called by useEffect due to state changes
+    // fetchHistory will be called by the useEffect dependency change if we clear states that are part of its deps
+    // Or call it explicitly if the state setters don't trigger it immediately (e.g., batched updates)
+    // For simplicity and explicitness:
+    setRequestsHistory([]); // Clear current view
+    fetchHistory(); // Re-fetch with empty filters
   };
 
 
@@ -97,17 +101,37 @@ export default function TopUpHistoryPage() {
   };
   
   const handleViewReceipt = (request: TopUpRequestFromAPI) => {
-    if (request.receiptData && request.receiptMimeType && Array.isArray(request.receiptData.data)) {
-      try {
-        const buffer = Buffer.from(request.receiptData.data);
-        const base64String = buffer.toString('base64');
-        setSelectedRequestReceipt(`data:${request.receiptMimeType};base64,${base64String}`);
-      } catch (e) {
-        toast({ title: "Error", description: "Could not display receipt.", variant: "destructive"});
-        setSelectedRequestReceipt(null);
+    let bufferInput: number[] | undefined;
+
+    if (request.receiptData && request.receiptMimeType) {
+      // Try common structure first: { type: 'Buffer', data: [...] }
+      if (typeof request.receiptData === 'object' && 'data' in request.receiptData && Array.isArray((request.receiptData as any).data)) {
+        bufferInput = (request.receiptData as any).data;
+      } 
+      // Else, check if receiptData itself is an array of numbers (another way Buffers might get serialized from aggregation)
+      else if (Array.isArray(request.receiptData)) {
+        // Basic check to see if it looks like byte data
+        if (request.receiptData.every(item => typeof item === 'number' && item >= 0 && item <= 255)) {
+            bufferInput = request.receiptData as number[];
+        }
+      }
+
+      if (bufferInput) {
+        try {
+          const buffer = Buffer.from(bufferInput);
+          const base64String = buffer.toString('base64');
+          setSelectedRequestReceipt(`data:${request.receiptMimeType};base64,${base64String}`);
+        } catch (e) {
+          console.error("Error converting receipt buffer:", e);
+          toast({ title: "Receipt Display Error", description: "Could not display receipt due to a conversion error.", variant: "destructive"});
+          setSelectedRequestReceipt(null);
+        }
+      } else {
+         toast({ title: "Receipt Data Error", description: "Receipt data is not in an expected format.", variant: "destructive"});
+         setSelectedRequestReceipt(null);
       }
     } else {
-       toast({ title: "No Receipt", description: "No receipt data available for this request.", variant: "default"});
+       toast({ title: "Receipt Data Error", description: "Receipt data or MIME type is missing.", variant: "destructive"});
        setSelectedRequestReceipt(null);
     }
   };
@@ -188,14 +212,16 @@ export default function TopUpHistoryPage() {
                     <HistoryIcon className="h-6 w-6 sm:h-7 sm:w-7 text-primary mr-2 sm:mr-3" />
                     <CardTitle className="text-lg sm:text-xl text-primary-foreground">All Requests</CardTitle>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 w-full xs:w-auto">
                     <Button variant="outline" size="sm" onClick={fetchHistory} disabled={isLoadingHistory} className="h-9">
                         <RefreshCw className={`h-4 w-4 ${isLoadingHistory ? 'animate-spin' : ''}`} />
                         <span className="ml-2 hidden xs:inline">{isLoadingHistory ? 'Refreshing...' : 'Refresh'}</span>
+                         <span className="xs:hidden ml-2">Refresh</span>
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleDownloadReport} disabled={isLoadingHistory || requestsHistory.length === 0} className="h-9 bg-accent text-accent-foreground hover:bg-accent/90 border-accent">
                         <Download className="h-4 w-4" />
                         <span className="ml-2 hidden xs:inline">Report</span>
+                        <span className="xs:hidden ml-2">Report</span>
                     </Button>
                 </div>
             </div>
@@ -280,7 +306,7 @@ export default function TopUpHistoryPage() {
                       <TableCell className="hidden sm:table-cell truncate max-w-[120px]">{request.reviewedBy?.username || 'N/A'}</TableCell>
                       <TableCell className="hidden md:table-cell">{request.reviewedAt ? new Date(request.reviewedAt).toLocaleString() : 'N/A'}</TableCell>
                       <TableCell>
-                        {request.receiptData ? (
+                        {request.receiptData && request.receiptMimeType ? (
                             <Button variant="outline" size="sm" onClick={() => handleViewReceipt(request)} className="h-7 px-2 py-1 text-xs">
                                 <Eye className="h-3.5 w-3.5"/>
                             </Button>
@@ -325,3 +351,6 @@ export default function TopUpHistoryPage() {
   );
 }
     
+
+    
+

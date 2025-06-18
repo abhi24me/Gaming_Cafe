@@ -5,56 +5,93 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const mongoose = require('mongoose');
 
-// Helper to parse date and time slot string into Date objects
-// IMPORTANT: This assumes the timeSlot string is in "H:MM AM/PM - H:MM AM/PM" format
-// and the date string is "YYYY-MM-DD".
-// It also assumes the times are for the *local timezone of the server* or where the date string is interpreted.
-// For production, ensure consistent timezone handling (e.g., all dates in UTC).
-const parseDateTimeSlot = (dateString, timeSlotString) => {
-  const [startTimeStr, endTimeStr] = timeSlotString.split(' - ');
+// Helper function to re-validate slot and get its details
+// This function would be similar to a portion of getScreenAvailability
+// but focused on a single slotId for a given screen and date.
+async function getValidatedSlotDetails(screenId, dateString, slotId, expectedStartTimeUTC, expectedPrice) {
+  const screen = await Screen.findById(screenId);
+  if (!screen || !screen.isActive) {
+    throw new Error('Screen not found or is not active.');
+  }
 
-  // Function to parse "H:MM AM/PM" into hours and minutes
-  const parseTime = (timeStr) => {
-    const [time, modifier] = timeStr.split(' ');
-    let [hours, minutes] = time.split(':').map(Number);
-    if (modifier === 'PM' && hours < 12) hours += 12;
-    if (modifier === 'AM' && hours === 12) hours = 0; // Midnight case
-    return { hours, minutes };
-  };
+  const targetDate_utc = new Date(dateString + 'T00:00:00.000Z');
+  const nextDateForQuery_utc = new Date(targetDate_utc);
+  nextDateForQuery_utc.setUTCDate(targetDate_utc.getUTCDate() + 1);
 
-  const start = parseTime(startTimeStr);
-  const end = parseTime(endTimeStr);
+  // Regenerate slots for the day to find the specific one by ID
+  // This logic must exactly match how slots are generated in screenController.getScreenAvailability
+  let foundSlot = null;
+  const now_utc = new Date();
 
-  const baseDate = new Date(dateString + 'T00:00:00.000Z'); // Treat dateString as UTC to set day
+  for (let hour = 0; hour < 24; hour++) {
+    const currentGeneratedSlotId = `slot-${dateString}-${hour}-30`; // Matches screenController's ID generation
+    if (currentGeneratedSlotId === slotId) {
+      const slotStartTime_utc = new Date(targetDate_utc);
+      slotStartTime_utc.setUTCHours(hour, 30, 0, 0);
 
-  const startTime = new Date(baseDate);
-  startTime.setUTCHours(start.hours, start.minutes, 0, 0);
+      const slotEndTime_utc = new Date(targetDate_utc);
+      slotEndTime_utc.setUTCHours(hour + 1, 30, 0, 0);
+      
+      // Basic validation against client-provided details
+      if (slotStartTime_utc.toISOString() !== expectedStartTimeUTC) {
+        throw new Error('Slot start time mismatch. Please refresh and try again.');
+      }
+      const price = screen.basePrice || 100;
+      if (price !== expectedPrice) {
+          throw new Error('Slot price mismatch. Please refresh and try again.');
+      }
 
-  const endTime = new Date(baseDate);
-  endTime.setUTCHours(end.hours, end.minutes, 0, 0);
+      // Check availability (past and overlap)
+      const isSlotInThePast = slotEndTime_utc <= now_utc;
+      if (isSlotInThePast) {
+          throw new Error('Selected slot is in the past.');
+      }
 
-  // Handle cases where endTime might roll over to the next day (e.g. 11:00 PM - 12:00 AM)
-  // This simple parser doesn't handle that; a more robust one would.
-  // For 1-hour slots, this usually isn't an issue unless booking across midnight.
-  // If slot duration can vary, this needs more care.
+      const existingBookings = await Booking.find({
+        screen: screenId,
+        status: { $in: ['upcoming', 'active'] },
+        $or: [
+          { startTime: { $lt: slotEndTime_utc, $gte: slotStartTime_utc } },
+          { endTime: { $gt: slotStartTime_utc, $lte: slotEndTime_utc } },
+          { startTime: { $lte: slotStartTime_utc }, endTime: { $gte: slotEndTime_utc } }
+        ]
+      });
 
-  return { startTime, endTime };
-};
+      if (existingBookings.length > 0) {
+        throw new Error('The selected time slot is no longer available. Please choose another.');
+      }
+      
+      foundSlot = {
+        id: currentGeneratedSlotId,
+        startTimeUTC: slotStartTime_utc,
+        endTimeUTC: slotEndTime_utc,
+        price: price,
+        isAvailable: true // If we reach here and pass checks, it's considered available for booking
+      };
+      break; 
+    }
+  }
+
+  if (!foundSlot) {
+    throw new Error('Selected slot details could not be validated or found. Please refresh.');
+  }
+  return foundSlot;
+}
 
 
 // @desc    Create a new booking
 // @route   POST /api/bookings
 // @access  Private
 exports.createBooking = async (req, res) => {
-  const { screenId, date, timeSlot, pricePaid, gamerTag } = req.body;
+  const { screenId, date: dateString, slotId, startTimeUTC: clientStartTimeUTC, pricePaid, gamerTag } = req.body;
   const userId = req.user.id;
 
-  if (!screenId || !date || !timeSlot || pricePaid === undefined || !gamerTag) {
-    return res.status(400).json({ message: 'Screen ID, date, time slot, price, and gamer tag are required.' });
+  if (!screenId || !dateString || !slotId || !clientStartTimeUTC || pricePaid === undefined || !gamerTag) {
+    return res.status(400).json({ message: 'Screen ID, date, slot ID, start time UTC, price, and gamer tag are required.' });
   }
 
   const numericPricePaid = parseFloat(pricePaid);
-  if (isNaN(numericPricePaid) || numericPricePaid < 0) { // Price can be 0 for free slots/promos
+  if (isNaN(numericPricePaid) || numericPricePaid < 0) {
     return res.status(400).json({ message: 'Invalid price specified.' });
   }
 
@@ -62,82 +99,65 @@ exports.createBooking = async (req, res) => {
   session.startTransaction();
 
   try {
-    const screen = await Screen.findById(screenId).session(session);
-    if (!screen || !screen.isActive) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ message: 'Screen not found or is not active.' });
-    }
-
     const user = await User.findById(userId).session(session);
     if (!user) {
-      await session.abortTransaction();
-      session.endSession();
+      await session.abortTransaction(); session.endSession();
       return res.status(404).json({ message: 'User not found.' });
     }
 
     if (user.walletBalance < numericPricePaid) {
-      await session.abortTransaction();
-      session.endSession();
+      await session.abortTransaction(); session.endSession();
       return res.status(400).json({ message: `Insufficient wallet balance. Current balance: ${user.walletBalance.toFixed(2)}` });
     }
 
-    const { startTime, endTime } = parseDateTimeSlot(date, timeSlot);
-    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ message: 'Invalid date or time slot format provided.' });
+    // Validate the slot details sent by the client against server's current state
+    const validatedSlot = await getValidatedSlotDetails(screenId, dateString, slotId, clientStartTimeUTC, numericPricePaid);
+    // validatedSlot contains startTimeUTC, endTimeUTC, price
+
+    const screen = await Screen.findById(screenId).session(session); // Fetch screen again for name, etc.
+     if (!screen) { // Should be caught by getValidatedSlotDetails, but double check
+      await session.abortTransaction(); session.endSession();
+      return res.status(404).json({ message: 'Screen not found for booking record.' });
     }
 
-    // Critical: Check for overlapping bookings again at the time of creation
-    const existingBookings = await Booking.find({
-      screen: screenId,
-      status: { $in: ['upcoming', 'active'] },
-      $or: [
-        { startTime: { $lt: endTime, $gte: startTime } },
-        { endTime: { $gt: startTime, $lte: endTime } },
-        { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
-      ]
-    }).session(session);
 
-    if (existingBookings.length > 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(409).json({ message: 'The selected time slot is no longer available. Please choose another.' });
-    }
-
-    // Record wallet balance before deduction
+    // Record balances before changes
     const walletBalanceBefore = user.walletBalance;
     const loyaltyPointsBefore = user.loyaltyPoints;
 
-    // Deduct from wallet
-    user.walletBalance -= numericPricePaid;
-
-    // Award loyalty points (e.g., 10 points per booking)
-    const pointsAwarded = 10; // Make this configurable if needed
+    // Update user's wallet and loyalty points
+    user.walletBalance -= numericPricePaid; // numericPricePaid is already validated to match server slot price
+    const pointsAwarded = 10; 
     user.loyaltyPoints += pointsAwarded;
 
     await user.save({ session });
 
-    // Create Booking
+    // Create the new booking using validated UTC times
     const newBooking = new Booking({
       user: userId,
       screen: screenId,
-      startTime,
-      endTime,
+      startTime: validatedSlot.startTimeUTC, 
+      endTime: validatedSlot.endTimeUTC,   
       status: 'upcoming',
-      pricePaid: numericPricePaid,
-      gamerTagAtBooking: gamerTag, // Use the provided gamerTag
+      pricePaid: numericPricePaid, // Use the validated price
+      gamerTagAtBooking: gamerTag, 
       bookedAt: new Date()
     });
     await newBooking.save({ session });
+    
+    // Format time for transaction description (can be local to server, or stick to UTC for consistency)
+    const transactionTimeDisplay = validatedSlot.startTimeUTC.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' // Or user's local if known and desired
+    });
+    const transactionDateDisplay = new Date(dateString + 'T00:00:00.000Z').toLocaleDateString('en-CA');
 
-    // Create Transaction
+
+    // Create a transaction record
     const newTransaction = new Transaction({
       user: userId,
       type: 'booking-fee',
-      amount: -numericPricePaid, // Negative as it's a deduction
-      description: `Booking fee for ${screen.name} on ${date} at ${timeSlot}`,
+      amount: -numericPricePaid, 
+      description: `Booking: ${screen.name} on ${transactionDateDisplay} at ${transactionTimeDisplay} (UTC)`,
       relatedBooking: newBooking._id,
       walletBalanceBefore: walletBalanceBefore,
       walletBalanceAfter: user.walletBalance,
@@ -153,7 +173,7 @@ exports.createBooking = async (req, res) => {
 
     res.status(201).json({
       message: 'Booking created successfully!',
-      booking: newBooking,
+      booking: await Booking.findById(newBooking._id).populate('screen', 'name imagePlaceholderUrl'),
       transaction: newTransaction,
       newBalance: user.walletBalance,
       newLoyaltyPoints: user.loyaltyPoints
@@ -166,12 +186,10 @@ exports.createBooking = async (req, res) => {
       const messages = Object.values(error.errors).map(val => val.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    console.error('Create Booking Error:', error);
-    res.status(500).json({ message: 'Server error while creating booking.' });
+    console.error('Create Booking Error:', error.message); // Log full error message
+    res.status(500).json({ message: error.message || 'Server error while creating booking.' });
   }
 };
-
-
 
 // @desc    Get bookings for the logged-in user
 // @route   GET /api/bookings
@@ -179,8 +197,8 @@ exports.createBooking = async (req, res) => {
 exports.getUserBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({ user: req.user.id })
-      .populate('screen', 'name imagePlaceholderUrl') // Populate screen details
-      .sort({ startTime: -1 }); // Show most recent/upcoming first
+      .populate('screen', 'name imagePlaceholderUrl imageAiHint') // Populate screen details
+      .sort({ startTime: -1 }); 
 
     res.status(200).json(bookings);
   } catch (error) {

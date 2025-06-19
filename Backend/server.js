@@ -6,7 +6,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-// const seedScreens = require('./seeders/screenSeeder'); // Comment out for Vercel deployment
+const seedScreens = require('./seeders/screenSeeder'); // Comment out for Vercel deployment
 
 const app = express();
 
@@ -94,7 +94,7 @@ async function connectMongo() {
       serverSelectionTimeoutMS: 5000,
     }).then((mongooseInstance) => {
       console.log('Successfully connected to MongoDB.');
-      // seedScreens(); // Best to run seeding locally or via a separate script for deployment
+      seedScreens(); // Best to run seeding locally or via a separate script for deployment
       return mongooseInstance;
     }).catch(err => {
       console.error('Database connection error:', err);

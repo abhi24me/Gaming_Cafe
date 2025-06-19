@@ -2,38 +2,143 @@
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const TopUpRequest = require('../models/TopUpRequest');
+const Admin = require('../models/Admin');
 const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
+
+// --- Nodemailer Transporter Setup (Using Ethereal for Testing) ---
+// This setup allows you to test email sending without real credentials.
+// Emails sent via Ethereal can be viewed through a link logged to the console.
+// For production, replace this with your actual email service provider's SMTP details
+// or API key, preferably using environment variables.
+let nodemailerTransporter;
+
+async function getEmailTransporter() {
+  if (nodemailerTransporter) {
+    return nodemailerTransporter;
+  }
+
+  // Check for production email credentials first (using environment variables)
+  // Example for a generic SMTP service:
+  // if (process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  //   nodemailerTransporter = nodemailer.createTransport({
+  //     host: process.env.SMTP_HOST,
+  //     port: parseInt(process.env.SMTP_PORT, 10),
+  //     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  //     auth: {
+  //       user: process.env.SMTP_USER,
+  //       pass: process.env.SMTP_PASS,
+  //     },
+  //   });
+  //   console.log('Using production SMTP transporter.');
+  // } else {
+    // Fallback to Ethereal Email for development/testing if no production config is set
+    try {
+      let testAccount = await nodemailer.createTestAccount();
+      nodemailerTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: testAccount.user, // Ethereal user
+          pass: testAccount.pass, // Ethereal password
+        },
+      });
+      console.log('Using Ethereal Email transporter for testing. Preview URL for emails will be logged.');
+    } catch (err) {
+      console.error('Failed to create Ethereal test account or transporter:', err);
+      // If Ethereal fails, set a dummy transporter to prevent crashes, but log that emails won't be sent.
+      nodemailerTransporter = { sendMail: () => Promise.reject("Email transporter not configured") };
+      console.error("Email notifications will not be sent as transporter setup failed.");
+    }
+  // }
+  return nodemailerTransporter;
+}
+
+
+// Function to send email notification to admins
+async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
+  try {
+    const transporter = await getEmailTransporter();
+    if (transporter.sendMail.toString().includes("Email transporter not configured")) {
+        console.warn("Skipping admin email notification: Transporter not configured.");
+        return;
+    }
+
+    const adminsToNotify = await Admin.find({ email: { $ne: null, $exists: true } }).select('email username');
+
+    if (adminsToNotify.length === 0) {
+      console.log('New top-up request submitted, but no admins found with registered email addresses for notification.');
+      return;
+    }
+
+    const adminEmails = adminsToNotify.map(admin => admin.email);
+    const subject = `New Top-Up Request: ₹${topUpRequest.amount} from ${userRequesting.gamerTag}`;
+    const textBody = `A new top-up request has been submitted:
+    User: ${userRequesting.gamerTag}
+    Amount: ₹${topUpRequest.amount}
+    Request ID: ${topUpRequest._id.toString()}
+    Payment Method: ${topUpRequest.paymentMethod}
+    Please review it in the admin panel.`;
+    const htmlBody = `
+      <p>A new top-up request has been submitted:</p>
+      <ul>
+        <li><strong>User:</strong> ${userRequesting.gamerTag}</li>
+        <li><strong>Amount:</strong> ₹${topUpRequest.amount}</li>
+        <li><strong>Request ID:</strong> ${topUpRequest._id.toString()}</li>
+        <li><strong>Payment Method:</strong> ${topUpRequest.paymentMethod}</li>
+      </ul>
+      <p>Please review it in the WelloSphere admin panel.</p>
+    `;
+
+    const mailOptions = {
+      from: '"WelloSphere Notifications" <noreply@wellosphere.com>', // Sender address (can be anything for Ethereal)
+      to: adminEmails.join(', '), // List of receivers
+      subject: subject,
+      text: textBody,
+      html: htmlBody,
+    };
+
+    let info = await transporter.sendMail(mailOptions);
+    console.log('Admin notification email sent: %s', info.messageId);
+    // For Ethereal, log the preview URL
+    if (nodemailer.getTestMessageUrl(info)) {
+      console.log('Preview URL (Ethereal): %s', nodemailer.getTestMessageUrl(info));
+    }
+
+  } catch (error) {
+    console.error('Error sending admin notification email:', error);
+    // Do not fail the main request if email notification fails
+  }
+}
+
 
 exports.getWalletTransactions = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Fetch confirmed transactions
     const confirmedTransactions = await Transaction.find({ user: userId })
-      .select('-receiptData') // Exclude receipt data from confirmed transactions
-      .lean(); // Use lean for performance if not modifying
+      .select('-receiptData')
+      .lean();
 
-    // Fetch pending and rejected top-up requests
     const userTopUpRequests = await TopUpRequest.find({
       user: userId,
       status: { $in: ['pending', 'rejected'] }
     })
-    .select('-receiptData') // Exclude receipt data
+    .select('-receiptData')
     .lean();
 
-    // Transform TopUpRequests to a Transaction-like structure
     const transformedRequests = userTopUpRequests.map(req => ({
-      _id: req._id.toString(), // Ensure _id is a string like other transactions
-      type: 'topup-request', // Differentiate this type
+      _id: req._id.toString(),
+      type: 'topup-request',
       amount: req.amount,
       description: `Top-Up Request (Status: ${req.status})${req.status === 'rejected' && req.adminNotes ? ` - Reason: ${req.adminNotes}` : ''}`,
-      timestamp: req.requestedAt.toISOString(), // Use requestedAt as the primary timestamp
-      status: req.status, // 'pending' or 'rejected'
-      adminNotes: req.adminNotes, // Include admin notes if present
-      user: req.user, // Keep user reference if needed, or simplify
+      timestamp: req.requestedAt.toISOString(),
+      status: req.status,
+      adminNotes: req.adminNotes,
+      user: req.user,
     }));
 
-    // Combine and sort all items
     const allItems = [...confirmedTransactions, ...transformedRequests];
     allItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -62,7 +167,7 @@ exports.getWalletDetails = async (req, res) => {
 };
 
 exports.requestTopUp = async (req, res) => {
-  const { amount, paymentMethod } = req.body; // transactionId (UPI ID) is removed
+  const { amount, paymentMethod } = req.body;
   const userId = req.user.id;
 
   if (!amount) {
@@ -79,23 +184,29 @@ exports.requestTopUp = async (req, res) => {
   }
 
   try {
+    const userRequesting = await User.findById(userId).select('gamerTag');
+    if (!userRequesting) {
+        return res.status(404).json({ message: 'User submitting request not found.' });
+    }
+
     const newTopUpRequest = new TopUpRequest({
       user: userId,
       amount: numericAmount,
       paymentMethod: paymentMethod || 'UPI',
-      receiptData: req.file.buffer, // Store the image buffer
-      receiptMimeType: req.file.mimetype, // Store the image MIME type
-      // upiTransactionId removed
-      // receiptImageUrl and receiptFilename removed
+      receiptData: req.file.buffer,
+      receiptMimeType: req.file.mimetype,
       status: 'pending',
       requestedAt: new Date()
     });
 
     await newTopUpRequest.save();
 
+    // Send email notification to admins
+    await sendAdminTopUpNotification(newTopUpRequest, userRequesting);
+
     res.status(201).json({
       message: 'Top-up request submitted successfully. It will be reviewed by an admin.',
-      request: { // Send back limited request info, not the image data
+      request: {
         _id: newTopUpRequest._id,
         amount: newTopUpRequest.amount,
         status: newTopUpRequest.status,
@@ -112,4 +223,3 @@ exports.requestTopUp = async (req, res) => {
     res.status(500).json({ message: 'Server error while submitting top-up request.' });
   }
 };
-

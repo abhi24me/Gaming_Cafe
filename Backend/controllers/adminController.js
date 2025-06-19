@@ -1,10 +1,33 @@
 
 const TopUpRequest = require('../models/TopUpRequest');
-const User = require('../models/User'); // Needed for user search in history
+const User = require('../models/User');
 const Admin = require('../models/Admin');
-const Transaction = require('../models/Transaction'); // Added this line
+const Transaction = require('../models/Transaction');
+const Screen = require('../models/Screen');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
+
+// --- Nodemailer Transporter Setup ---
+let nodemailerTransporter;
+async function getEmailTransporter() {
+  if (nodemailerTransporter) {
+    return nodemailerTransporter;
+  }
+    try {
+      let testAccount = await nodemailer.createTestAccount();
+      nodemailerTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email', port: 587, secure: false,
+        auth: { user: testAccount.user, pass: testAccount.pass },
+      });
+      console.log('Using Ethereal Email transporter for testing. Preview URL for emails will be logged.');
+    } catch (err) {
+      console.error('Failed to create Ethereal test account or transporter:', err);
+      nodemailerTransporter = { sendMail: () => Promise.reject("Email transporter not configured") };
+      console.error("Email notifications will not be sent as transporter setup failed.");
+    }
+  return nodemailerTransporter;
+}
 
 const generateAdminToken = (adminId, username) => {
   return jwt.sign(
@@ -57,104 +80,29 @@ exports.getTopUpRequestHistory = async (req, res) => {
   try {
     const { startDate, endDate, adminUsername, userSearch } = req.query;
     let pipeline = [];
-
-    // Match stage for base query conditions (if any specific, otherwise it starts broad)
-    let initialMatchConditions = {}; // Add any base conditions here if needed
-
-    // Date filtering on 'requestedAt'
-    if (startDate) {
-      initialMatchConditions.requestedAt = { ...initialMatchConditions.requestedAt, $gte: new Date(startDate) };
-    }
+    let initialMatchConditions = {};
+    if (startDate) initialMatchConditions.requestedAt = { ...initialMatchConditions.requestedAt, $gte: new Date(startDate) };
     if (endDate) {
-      // Adjust endDate to include the entire day
       const endOfDay = new Date(endDate);
       endOfDay.setUTCHours(23, 59, 59, 999);
       initialMatchConditions.requestedAt = { ...initialMatchConditions.requestedAt, $lte: endOfDay };
     }
-    if(Object.keys(initialMatchConditions).length > 0){
-        pipeline.push({ $match: initialMatchConditions });
-    }
-
-
-    // Lookup user details
-    pipeline.push({
-      $lookup: {
-        from: 'users', // The actual collection name for User model
-        localField: 'user',
-        foreignField: '_id',
-        as: 'userDetails'
-      }
-    });
-    // $unwind to deconstruct the userDetails array. Preserve if no user found (e.g. user deleted)
+    if(Object.keys(initialMatchConditions).length > 0) pipeline.push({ $match: initialMatchConditions });
+    pipeline.push({ $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDetails' } });
     pipeline.push({ $unwind: { path: '$userDetails', preserveNullAndEmptyArrays: true } });
-
-    // Lookup admin details for reviewedBy
-    pipeline.push({
-      $lookup: {
-        from: 'admins', // The actual collection name for Admin model
-        localField: 'reviewedBy',
-        foreignField: '_id',
-        as: 'adminDetails'
-      }
-    });
-    // $unwind to deconstruct the adminDetails array. Preserve if not reviewed or admin deleted.
+    pipeline.push({ $lookup: { from: 'admins', localField: 'reviewedBy', foreignField: '_id', as: 'adminDetails' } });
     pipeline.push({ $unwind: { path: '$adminDetails', preserveNullAndEmptyArrays: true } });
-
-    // Filter by admin username (after lookup)
-    if (adminUsername) {
-      pipeline.push({ $match: { 'adminDetails.username': { $regex: adminUsername, $options: 'i' } } });
-    }
-
-    // Filter by user gamerTag or email (after lookup)
-    if (userSearch) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { 'userDetails.gamerTag': { $regex: userSearch, $options: 'i' } },
-            { 'userDetails.email': { $regex: userSearch, $options: 'i' } }
-          ]
-        }
-      });
-    }
-    
-    // Project the desired fields to match the frontend's expected structure
-    pipeline.push({
-      $project: {
-        _id: 1,
-        amount: 1,
-        status: 1,
-        paymentMethod: 1,
-        receiptData: 1, 
-        receiptMimeType: 1,
-        requestedAt: 1,
-        reviewedAt: 1,
-        adminNotes: 1,
-        createdAt: 1, // Include if needed
-        updatedAt: 1, // Include if needed
-        user: { // Reshape user data
-          _id: '$userDetails._id',
-          gamerTag: '$userDetails.gamerTag',
-          email: '$userDetails.email'
-        },
-        reviewedBy: { // Reshape admin data
-          _id: '$adminDetails._id',
-          username: '$adminDetails.username'
-        }
-      }
-    });
-
-    // Sort by requestedAt descending (newest first)
+    if (adminUsername) pipeline.push({ $match: { 'adminDetails.username': { $regex: adminUsername, $options: 'i' } } });
+    if (userSearch) pipeline.push({ $match: { $or: [ { 'userDetails.gamerTag': { $regex: userSearch, $options: 'i' } }, { 'userDetails.email': { $regex: userSearch, $options: 'i' } } ] } });
+    pipeline.push({ $project: { _id: 1, amount: 1, status: 1, paymentMethod: 1, receiptData: 1, receiptMimeType: 1, requestedAt: 1, reviewedAt: 1, adminNotes: 1, createdAt: 1, updatedAt: 1, user: { _id: '$userDetails._id', gamerTag: '$userDetails.gamerTag', email: '$userDetails.email' }, reviewedBy: { _id: '$adminDetails._id', username: '$adminDetails.username' } } });
     pipeline.push({ $sort: { requestedAt: -1 } });
-
     const allRequests = await TopUpRequest.aggregate(pipeline);
     res.status(200).json(allRequests);
-
   } catch (error) {
     console.error('Get TopUp Request History Error:', error);
     res.status(500).json({ message: 'Server error while fetching request history.' });
   }
 };
-
 
 exports.approveTopUpRequest = async (req, res) => {
   const { requestId } = req.params;
@@ -242,4 +190,102 @@ exports.rejectTopUpRequest = async (req, res) => {
     res.status(500).json({ message: 'Server error while rejecting request.' });
   }
 };
-    
+
+// --- Screen Management by Admin ---
+exports.getScreensForAdmin = async (req, res) => {
+  try {
+    const screens = await Screen.find({}).sort({ name: 1 });
+    res.status(200).json(screens);
+  } catch (error) {
+    console.error('Get Screens for Admin Error:', error);
+    res.status(500).json({ message: 'Server error while fetching screens for admin.' });
+  }
+};
+
+exports.addScreenPriceOverride = async (req, res) => {
+  const { screenId } = req.params;
+  const { daysOfWeek, startTimeUTC, endTimeUTC, price } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(screenId)) {
+    return res.status(400).json({ message: 'Invalid screen ID format.' });
+  }
+
+  if (!Array.isArray(daysOfWeek) || daysOfWeek.length === 0 || !daysOfWeek.every(day => typeof day === 'number' && day >= 0 && day <= 6)) {
+    return res.status(400).json({ message: 'Days of week must be a non-empty array of numbers between 0 and 6.' });
+  }
+  const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  if (!startTimeUTC || !timeRegex.test(startTimeUTC)) {
+    return res.status(400).json({ message: 'Start time UTC must be in HH:MM format.' });
+  }
+  if (!endTimeUTC || !timeRegex.test(endTimeUTC)) {
+    return res.status(400).json({ message: 'End time UTC must be in HH:MM format.' });
+  }
+  if (typeof price !== 'number' || price < 0) {
+    return res.status(400).json({ message: 'Price must be a non-negative number.' });
+  }
+
+  const startTotalMinutes = parseInt(startTimeUTC.split(':')[0]) * 60 + parseInt(startTimeUTC.split(':')[1]);
+  const endTotalMinutes = parseInt(endTimeUTC.split(':')[0]) * 60 + parseInt(endTimeUTC.split(':')[1]);
+  if (startTotalMinutes >= endTotalMinutes) {
+      return res.status(400).json({ message: 'End time must be after start time.' });
+  }
+
+  try {
+    const screen = await Screen.findById(screenId);
+    if (!screen) {
+      return res.status(404).json({ message: 'Screen not found.' });
+    }
+
+    const newOverride = {
+      daysOfWeek: [...new Set(daysOfWeek)].sort((a,b)=>a-b),
+      startTimeUTC,
+      endTimeUTC,
+      price,
+    };
+
+    screen.priceOverrides.push(newOverride);
+    await screen.save();
+
+    res.status(201).json({ message: 'Price override added successfully.', screen });
+  } catch (error) {
+    console.error('Add Screen Price Override Error:', error);
+    if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map(val => val.message);
+        return res.status(400).json({ message: messages.join(', ') });
+    }
+    res.status(500).json({ message: 'Server error while adding price override.' });
+  }
+};
+
+exports.removeScreenPriceOverride = async (req, res) => {
+  const { screenId, overrideId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(screenId) || !mongoose.Types.ObjectId.isValid(overrideId)) {
+    return res.status(400).json({ message: 'Invalid screen ID or override ID format.' });
+  }
+
+  try {
+    const screen = await Screen.findById(screenId);
+    if (!screen) {
+      return res.status(404).json({ message: 'Screen not found.' });
+    }
+
+    const overrideExists = screen.priceOverrides.some(ov => ov._id.toString() === overrideId);
+    if (!overrideExists) {
+        return res.status(404).json({ message: 'Price override not found on this screen.' });
+    }
+
+    screen.priceOverrides.pull({ _id: overrideId });
+    await screen.save();
+
+    res.status(200).json({ message: 'Price override removed successfully.', screen });
+  } catch (error) {
+    console.error('Remove Screen Price Override Error:', error);
+    res.status(500).json({ message: 'Server error while removing price override.' });
+  }
+};
+
+// Placeholder for updateScreenBasePrice
+exports.updateScreenBasePrice = async (req, res) => {
+  res.status(501).json({ message: 'Not Implemented: Update Screen Base Price' });
+};

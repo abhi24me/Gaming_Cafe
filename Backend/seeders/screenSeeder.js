@@ -8,6 +8,21 @@ const screensData = [
     features: ["PS5", "4K Monitor", "Comfortable Chair"],
     imagePlaceholderUrl: "https://placehold.co/600x400.png",
     imageAiHint: "gaming monitor",
+    basePrice: 100, // Standard price
+    priceOverrides: [
+      { // Weekend evening surge
+        daysOfWeek: [0, 6], // Sunday, Saturday
+        startTimeUTC: "18:00",
+        endTimeUTC: "23:59",
+        price: 150
+      },
+      { // Weekday morning discount
+        daysOfWeek: [1, 2, 3, 4, 5], // Mon-Fri
+        startTimeUTC: "09:00",
+        endTimeUTC: "12:00",
+        price: 80
+      }
+    ],
     isActive: true
   },
   {
@@ -16,36 +31,27 @@ const screensData = [
     features: ["PS5 Pro", "OLED 4K TV", "Racing Wheel Setup", "Surround Sound"],
     imagePlaceholderUrl: "https://placehold.co/600x400.png",
     imageAiHint: "console gaming",
-    isActive: true
-  },
-  {
-    name: "Arcade Zone Alpha",
-    description: "Classic arcade games and modern fighters. Perfect for retro fans.",
-    features: ["Arcade Cabinet Multi-Game", "Fight Stick Ready", "Retro Theme"],
-    imagePlaceholderUrl: "https://placehold.co/600x400.png",
-    imageAiHint: "arcade machine",
-    isActive: true
-  },
-  {
-    name: "VR Experience Pod",
-    description: "Immerse yourself in virtual reality.",
-    features: ["High-end VR Headset", "Motion Controllers", "Dedicated VR Space"],
-    imagePlaceholderUrl: "https://placehold.co/600x400.png",
-    imageAiHint: "virtual reality",
+    basePrice: 200,
+    priceOverrides: [
+      { // All day weekend price
+        daysOfWeek: [0, 6], // Sunday, Saturday
+        startTimeUTC: "00:00",
+        endTimeUTC: "23:59",
+        price: 250
+      }
+    ],
     isActive: true
   }
 ];
 
 const seedScreens = async () => {
   try {
-    // Check if there are any screens already to prevent duplicate seeding
     const existingScreensCount = await Screen.countDocuments();
     if (existingScreensCount > 0) {
       console.log('Screens collection already contains data. Seeding skipped.');
       return;
     }
 
-    // Add timestamps to data
     const screensToSeed = screensData.map(screen => ({
       ...screen,
       createdAt: new Date(),
@@ -53,10 +59,9 @@ const seedScreens = async () => {
     }));
 
     await Screen.insertMany(screensToSeed);
-    console.log('Screens seeded successfully!');
+    console.log('Screens seeded successfully with base prices and example overrides!');
   } catch (error) {
     console.error('Error seeding screens:', error);
-    // process.exit(1); // Optional: exit if seeding fails critically
   }
 };
 

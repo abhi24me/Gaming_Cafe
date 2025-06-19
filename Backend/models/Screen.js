@@ -1,54 +1,83 @@
+
 const mongoose = require('mongoose');
+
+const priceOverrideSchema = new mongoose.Schema({
+  daysOfWeek: { // 0 (Sunday) to 6 (Saturday)
+    type: [Number],
+    required: true,
+    validate: {
+      validator: function(arr) {
+        return arr.every(day => day >= 0 && day <= 6);
+      },
+      message: 'daysOfWeek must contain numbers between 0 and 6.'
+    }
+  },
+  startTimeUTC: { // "HH:MM" format, e.g., "09:30"
+    type: String,
+    required: true,
+    match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'startTimeUTC must be in HH:MM format (UTC).']
+  },
+  endTimeUTC: {   // "HH:MM" format, e.g., "17:30" (slot must start before this time)
+    type: String,
+    required: true,
+    match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'endTimeUTC must be in HH:MM format (UTC).']
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: [0, 'Price cannot be negative.']
+  }
+}); // Removed {_id: false} to allow Mongoose to auto-generate _id for subdocuments
+
 
 const screenSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Screen name is required'],
+    required: [true, 'Screen name is required.'],
+    trim: true,
     unique: true,
-    trim: true
   },
   description: {
     type: String,
-    trim: true
+    trim: true,
   },
-  // You can expand this based on your needs, e.g., type of console, display specs, etc.
-  features: [{
-    type: String,
-    trim: true
-  }],
-  // This could represent what's currently displayed in your Next.js frontend
-  // For the backend, these might be stored if you allow admins to update them,
-  // or they could be derived/managed differently.
+  features: {
+    type: [String],
+    default: [],
+  },
   imagePlaceholderUrl: {
     type: String,
-    trim: true
+    required: [true, 'Image placeholder URL is required.'],
+    default: 'https://placehold.co/600x400.png',
   },
-  imageAiHint: { // Corresponds to data-ai-hint in your frontend for image suggestions
+  imageAiHint: {
     type: String,
-    trim: true
+    required: [true, 'Image AI hint is required.'],
+    default: 'gaming setup',
   },
-  // To allow admins to temporarily disable a screen for maintenance, etc.
+  basePrice: { // Default price for slots if no override matches
+    type: Number,
+    required: [true, 'Base price is required for a screen.'],
+    default: 100,
+    min: [0, 'Base price cannot be negative.']
+  },
+  priceOverrides: [priceOverrideSchema], // Array of price override rules
   isActive: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  // You might want to add hourly rates or link to a pricing model here
-  // hourlyRate: {
-  //   type: Number,
-  //   required: [true, 'Hourly rate is required']
-  // },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   }
 });
 
 // Middleware to update `updatedAt` field on save
-screenSchema.pre('save', function(next) {
+screenSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });

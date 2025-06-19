@@ -3,6 +3,27 @@ const Screen = require('../models/Screen');
 const Booking = require('../models/Booking');
 const mongoose = require('mongoose');
 
+// Helper function to calculate slot price based on overrides
+function calculateSlotPrice(slotStartTimeUTC, screen) {
+  const slotDayUTC = slotStartTimeUTC.getUTCDay(); // 0 (Sun) - 6 (Sat)
+  const slotTimeUTC = slotStartTimeUTC.getUTCHours() * 100 + slotStartTimeUTC.getUTCMinutes(); // e.g., 930 for 09:30
+
+  if (screen.priceOverrides && screen.priceOverrides.length > 0) {
+    for (const override of screen.priceOverrides) {
+      if (override.daysOfWeek.includes(slotDayUTC)) {
+        const overrideStartTime = parseInt(override.startTimeUTC.replace(':', ''), 10);
+        const overrideEndTime = parseInt(override.endTimeUTC.replace(':', ''), 10);
+
+        if (slotTimeUTC >= overrideStartTime && slotTimeUTC < overrideEndTime) {
+          return override.price; // Use override price
+        }
+      }
+    }
+  }
+  return screen.basePrice; // Fallback to base price
+}
+
+
 // @desc    Get all active screens
 // @route   GET /api/screens
 // @access  Public (or Private)
@@ -71,6 +92,8 @@ exports.getScreenAvailability = async (req, res) => {
       
       const finalIsAvailable = !isSlotInThePast && !isOverlappingBooking;
       
+      const currentSlotPrice = calculateSlotPrice(slotStartTime_utc, screen);
+
       // The `time` string is a fallback/debug display; frontend uses UTC times for accurate local formatting
       const startHourDisplay = slotStartTime_utc.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' });
       const endHourDisplay = slotEndTime_utc.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' });
@@ -82,7 +105,7 @@ exports.getScreenAvailability = async (req, res) => {
         startTimeUTC: slotStartTime_utc.toISOString(), 
         endTimeUTC: slotEndTime_utc.toISOString(),   
         isAvailable: finalIsAvailable,
-        price: screen.basePrice || 100 // Use screen's basePrice or default
+        price: currentSlotPrice 
       });
     }
 
@@ -93,3 +116,4 @@ exports.getScreenAvailability = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching screen availability.' });
   }
 };
+

@@ -15,6 +15,21 @@ const adminSchema = new mongoose.Schema({
     minlength: [8, 'Password must be at least 8 characters long'],
     select: false, // Password will not be returned in queries by default
   },
+  email: {
+    type: String,
+    required: [true, 'Admin email is required.'],
+    unique: true,
+    trim: true,
+    lowercase: true,
+    match: [/\S+@\S+\.\S+/, 'Please fill a valid email address'],
+  },
+  phoneNumber: { // Re-added as an optional field
+    type: String,
+    trim: true,
+    // Example validation (optional, adjust as needed):
+    // match: [/^\+?[1-9]\d{1,14}$/, 'Please fill a valid phone number (e.g., +911234567890)'],
+    // If you ever make phoneNumber unique and want to allow multiple null/undefined, add: sparse: true
+  },
   createdAt: {
     type: Date,
     default: Date.now,

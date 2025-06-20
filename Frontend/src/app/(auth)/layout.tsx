@@ -14,7 +14,7 @@ export default function AuthLayout({
           <Gamepad2 className="h-10 w-10 mr-3 text-primary" />
           <Link href="/" legacyBehavior passHref>
             <a className="text-4xl font-bold text-primary tracking-wider hover:opacity-80 transition-opacity">
-              Wello
+              Tron
             </a>
           </Link>
         </div>
@@ -23,7 +23,7 @@ export default function AuthLayout({
         </div>
       </main>
       <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border">
-        © {new Date().getFullYear()} Wello. All rights reserved.
+        © {new Date().getFullYear()} Tron. All rights reserved.
       </footer>
     </div>
   );

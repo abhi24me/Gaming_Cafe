@@ -25,7 +25,7 @@ async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('welloAdminToken') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('TronAdminToken') : null;
   
   // Initialize Headers object
   const requestHeaders = new Headers(options.headers);

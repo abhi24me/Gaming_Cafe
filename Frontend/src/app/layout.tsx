@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
 
 export const metadata: Metadata = {
-  title: 'Wello - PS5 Gaming Café',
-  description: 'Book your PS5 gaming sessions at Wello!',
+  title: 'Tron - PS5 Gaming Café',
+  description: 'Book your PS5 gaming sessions at Tron!',
 };
 
 export default function RootLayout({

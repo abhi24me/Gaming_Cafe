@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 
 export const metadata: Metadata = {
-  title: 'Wello Admin Panel',
-  description: 'Manage WelloSphere operations.',
+  title: 'Tron Admin Panel',
+  description: 'Manage TronSphere operations.',
 };
 
 export default function RootLayout({

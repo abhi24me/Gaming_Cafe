@@ -28,8 +28,8 @@ const screensData = [
   {
     name: "Premium Screen A",
     description: "Top-tier experience with premium peripherals.",
-    features: ["PS5 Pro", "OLED 4K TV", "Racing Wheel Setup", "Surround Sound"],
-    imagePlaceholderUrl: "https://placehold.co/600x400.png",
+    features: ["PS5 Pro", "OLED 4K TV", "Surround Sound"],
+    imagePlaceholderUrl: "public/images/screen1",
     imageAiHint: "console gaming",
     basePrice: 200,
     priceOverrides: [

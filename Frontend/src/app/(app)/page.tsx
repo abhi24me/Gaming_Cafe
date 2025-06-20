@@ -239,7 +239,7 @@ export default function HomePage() {
   if (!isAuthenticated && !isLoadingAuth) {
     return (
       <div className="text-center py-10">
-        <h2 className="text-2xl font-semibold mb-4 text-primary">Welcome to Wello!</h2>
+        <h2 className="text-2xl font-semibold mb-4 text-primary">Welcome to Tron Gaming!</h2>
         <p className="text-muted-foreground">Please log in to book your gaming session.</p>
       </div>
     );

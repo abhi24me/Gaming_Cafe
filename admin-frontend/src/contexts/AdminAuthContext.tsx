@@ -9,8 +9,8 @@ import apiClient, { ApiError } from '@/lib/apiClient';
 
 const AdminAuthContext = createContext<AdminAuthState | undefined>(undefined);
 
-const ADMIN_TOKEN_KEY = 'welloAdminToken';
-const ADMIN_USER_KEY = 'welloAdminUser';
+const ADMIN_TOKEN_KEY = 'TronAdminToken';
+const ADMIN_USER_KEY = 'TronAdminUser';
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [adminUser, setAdminUser] = useState<AdminUserDetails | null>(null);

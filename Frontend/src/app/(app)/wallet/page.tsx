@@ -30,7 +30,7 @@ export default function WalletPage() {
             <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
               <CardTitle className="text-lg sm:text-xl text-accent">Promotional Offers</CardTitle>
               <CardDescription className="text-xs sm:text-sm text-foreground/80">
-                Stay updated with the latest events, discounts, and special offers at Wello.
+                Stay updated with the latest events, discounts, and special offers at Tron.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-2 sm:pt-3">

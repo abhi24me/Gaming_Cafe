@@ -9,8 +9,8 @@ import apiClient, { ApiError } from '@/lib/apiClient';
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
-const GAMER_TAG_KEY = 'welloGamerTag';
-const USER_TOKEN_KEY = 'welloUserToken'; // Changed from isAuthenticated to store the actual token
+const GAMER_TAG_KEY = 'TronGamerTag';
+const USER_TOKEN_KEY = 'TronUserToken'; // Changed from isAuthenticated to store the actual token
 
 interface LoginResponse {
   token: string;
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push('/');
       toast({
         title: "Signup Successful!",
-        description: `Welcome to Wello, ${response.user.gamerTag}! Your adventure begins.`,
+        description: `Welcome to Tron, ${response.user.gamerTag}! Your adventure begins.`,
         className: "bg-green-600 text-white border-green-700",
       });
     } catch (error) {

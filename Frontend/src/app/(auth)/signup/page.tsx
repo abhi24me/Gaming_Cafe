@@ -92,7 +92,7 @@ export default function SignupPage() {
           <UserPlus className="mr-2 h-6 w-6 sm:h-7 sm:w-7" /> Create Your Account
         </CardTitle>
         <CardDescription className="text-foreground/80 pt-1">
-          Fill in the details below to join Wello.
+          Fill in the details below to join Tron.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>

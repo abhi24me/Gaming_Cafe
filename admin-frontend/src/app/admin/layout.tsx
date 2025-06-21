@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode; }
                 <a className="flex items-center text-lg sm:text-xl font-bold text-primary tracking-wider hover:opacity-80 transition-opacity">
                   <ShieldCheck className="h-5 w-5 mr-1 sm:h-6 sm:w-6 sm:mr-2" />
                   <span className="sm:hidden">Admin</span>
-                  <span className="hidden sm:inline">Wello Admin</span>
+                  <span className="hidden sm:inline">Tron Admin</span>
                 </a>
               </Link>
               <nav className="flex items-center space-x-1 sm:space-x-2">
@@ -101,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode; }
         {(isAdminAuthenticated || pathname === '/admin/login') ? children : null}
       </main>
       <footer className="py-4 text-center text-muted-foreground text-xs border-t border-border bg-card/80 mt-auto">
-          Wello Admin Portal &copy; {new Date().getFullYear()}
+          Tron Admin Portal &copy; {new Date().getFullYear()}
       </footer>
     </div>
   );

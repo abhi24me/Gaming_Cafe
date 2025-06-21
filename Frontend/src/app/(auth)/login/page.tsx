@@ -29,7 +29,7 @@ export default function LoginPage() {
     <Card className="bg-card/90 backdrop-blur-sm border-glow-primary w-full">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl sm:text-3xl text-primary flex items-center justify-center">
-          <LogIn className="mr-2 h-6 w-6 sm:h-7 sm:w-7" /> Enter Wello
+          <LogIn className="mr-2 h-6 w-6 sm:h-7 sm:w-7" /> Enter Tron
         </CardTitle>
         <CardDescription className="text-foreground/80 pt-1">
           Enter your Email and Password to continue.
@@ -42,7 +42,7 @@ export default function LoginPage() {
             <Input
               id="emailLogin"
               type="email" // Changed from text
-              placeholder="e.g., player@wello.com" // Changed placeholder
+              placeholder="e.g., player@Tron.com" // Changed placeholder
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               required

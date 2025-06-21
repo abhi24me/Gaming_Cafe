@@ -27,7 +27,7 @@ export default {
         heading: ["var(--font-orbitron)", "sans-serif"],
       },
   		colors: {
-        /* Wello Color Palette */
+        /* Tron Color Palette */
         background: 'hsl(var(--background))', /* Jet Black #0D0D0D */
         foreground: 'hsl(var(--foreground))', /* Light Gray/White */
 

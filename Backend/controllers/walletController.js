@@ -113,6 +113,7 @@ async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
     `;
 
     const mailOptions = {
+<<<<<<< HEAD
       from: process.env.SMTP_USER, // Sender address (can be anything for Ethereal)
       to: adminEmails.join(", "), // List of receivers
       subject: subject,

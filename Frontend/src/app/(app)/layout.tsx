@@ -16,7 +16,7 @@ export default function AppLayout({
           {children}
         </main>
         <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border">
-          © {new Date().getFullYear()} Wello. All rights reserved.
+          © {new Date().getFullYear()} Tron. All rights reserved.
         </footer>
       </div>
     </WalletProvider>

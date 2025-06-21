@@ -40,7 +40,7 @@ export default function Header() {
             <Gamepad2 className="h-6 w-6 mr-1 sm:h-7 sm:w-7 sm:mr-2 text-primary" />
             <Link href="/" legacyBehavior passHref>
               <a className="text-xl sm:text-2xl font-bold text-primary tracking-wider hover:opacity-80 transition-opacity font-heading">
-                Wello
+                Tron
               </a>
             </Link>
           </div>

@@ -23,25 +23,23 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, DollarSignIcon, Clock } from 'lucide-react';
 
 const DAYS_OF_WEEK_OPTIONS = [
-  { id: 0, label: 'Sunday' },
-  { id: 1, label: 'Monday' },
-  { id: 2, label: 'Tuesday' },
-  { id: 3, label: 'Wednesday' },
-  { id: 4, label: 'Thursday' },
-  { id: 5, label: 'Friday' },
-  { id: 6, label: 'Saturday' },
+  { id: 0, label: 'Sun' },
+  { id: 1, label: 'Mon' },
+  { id: 2, label: 'Tue' },
+  { id: 3, label: 'Wed' },
+  { id: 4, label: 'Thu' },
+  { id: 5, label: 'Fri' },
+  { id: 6, label: 'Sat' },
 ];
 
-const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; // Validates HH:MM format
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-// Schema for form input (IST times)
 const priceOverrideFormSchema = z.object({
   daysOfWeek: z.array(z.number()).min(1, { message: 'At least one day must be selected.' }),
   startTimeIST: z.string().regex(timeRegex, { message: 'Start time must be in HH:MM IST format (e.g., 09:30).' }),
   endTimeIST: z.string().regex(timeRegex, { message: 'End time must be in HH:MM IST format (e.g., 17:00).' }),
   price: z.coerce.number().min(0, { message: 'Price must be a non-negative number.' }),
 }).refine(data => {
-    // Validate that end time is after start time (for the same day logic)
     const start = parseInt(data.startTimeIST.replace(':', ''), 10);
     const end = parseInt(data.endTimeIST.replace(':', ''), 10);
     return end > start;
@@ -52,26 +50,16 @@ const priceOverrideFormSchema = z.object({
 
 type PriceOverrideFormData = z.infer<typeof priceOverrideFormSchema>;
 
-// Helper function to convert IST "HH:MM" to UTC "HH:MM"
 function convertIstHHMMtoUtcHHMM(istHHMM: string): string {
   if (!istHHMM.match(timeRegex)) {
-    console.error("Invalid IST time format for conversion:", istHHMM);
     throw new Error("Invalid IST time format provided for conversion.");
   }
   
   const [hours, minutes] = istHHMM.split(':').map(Number);
-
-  // Create a reference date (e.g., today) and set the time as IST.
-  // Then get the UTC equivalent.
-  // For simplicity, we'll use a known date.
-  const referenceDate = new Date(); // Use current date, but only for date parts
+  const referenceDate = new Date();
   
-  // Construct a string that JavaScript's Date parser will interpret in 'Asia/Kolkata'
-  // This requires knowing the current year, month, day from a reliable source,
-  // or using a library for robust timezone conversions.
-  // A common trick: create a date string in ISO format with the IST offset +05:30
   const year = referenceDate.getFullYear();
-  const month = String(referenceDate.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+  const month = String(referenceDate.getMonth() + 1).padStart(2, '0');
   const day = String(referenceDate.getDate()).padStart(2, '0');
   
   const dateStringInIST = `${year}-${month}-${day}T${istHHMM}:00.000+05:30`;
@@ -86,11 +74,9 @@ function convertIstHHMMtoUtcHHMM(istHHMM: string): string {
     return `${utcHours}:${utcMinutes}`;
   } catch (e) {
       console.error("Error converting IST to UTC:", e, { istHHMM, dateStringInIST });
-      // Fallback or re-throw, depending on desired strictness
-      throw new Error("Failed to convert IST time to UTC. Ensure valid time and system date settings.");
+      throw new Error("Failed to convert IST time to UTC.");
   }
 }
-
 
 interface AddPriceOverrideDialogProps {
   isOpen: boolean;
@@ -186,7 +172,7 @@ export default function AddPriceOverrideDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 md:space-y-4 py-2">
           <div>
             <Label className="text-xs md:text-sm font-medium text-foreground">Days of the Week</Label>
-            <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 p-2 md:p-3 border rounded-md bg-background/50">
+            <div className="mt-1 grid grid-cols-3 sm:grid-cols-4 gap-x-3 gap-y-1.5 p-2 md:p-3 border rounded-md bg-background/50">
               {DAYS_OF_WEEK_OPTIONS.map((day) => (
                 <Controller
                   key={day.id}
@@ -216,7 +202,7 @@ export default function AddPriceOverrideDialog({
             {errors.daysOfWeek && <p className="text-xs text-destructive mt-1">{errors.daysOfWeek.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div>
               <Label htmlFor="startTimeIST" className="text-xs md:text-sm font-medium text-foreground">Start Time (IST)</Label>
               <div className="relative mt-1">

@@ -48,17 +48,17 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
+    <div className="flex items-center justify-center w-full">
       <Card className="w-full max-w-md shadow-xl border-border bg-card">
-        <CardHeader className="text-center p-6">
-          <ShieldAlert className="mx-auto h-10 w-10 text-primary mb-3" />
-          <CardTitle className="text-2xl sm:text-3xl font-semibold text-primary-foreground">Admin Access</CardTitle>
-          <CardDescription className="text-muted-foreground pt-1">
+        <CardHeader className="text-center p-4 md:p-6">
+          <ShieldAlert className="mx-auto h-8 w-8 md:h-10 md:w-10 text-primary mb-3" />
+          <CardTitle className="text-2xl md:text-3xl font-semibold text-primary-foreground">Admin Access</CardTitle>
+          <CardDescription className="text-muted-foreground pt-1 text-sm">
             Enter your admin credentials to proceed.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4 px-6 pb-4">
+          <CardContent className="space-y-4 px-4 md:px-6 pb-4">
             <div className="space-y-2">
               <Label htmlFor="adminUsername" className="text-foreground font-medium">Admin Username</Label>
               <Input
@@ -86,8 +86,8 @@ export default function AdminLoginPage() {
               />
             </div>
           </CardContent>
-          <CardFooter className="px-6 pb-6 pt-2">
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-3 btn-glow-primary" disabled={isLoadingAdminAuth}>
+          <CardFooter className="px-4 md:px-6 pb-6 pt-2">
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-base md:text-lg py-2.5 btn-glow-primary" disabled={isLoadingAdminAuth}>
               {isLoadingAdminAuth ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />

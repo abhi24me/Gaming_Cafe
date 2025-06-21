@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { History as HistoryIcon, Loader2, AlertTriangle, RefreshCw, Eye, Download, FilterX, Search } from 'lucide-react';
+import { History as HistoryIcon, Loader2, AlertTriangle, RefreshCw, Eye, Download, FilterX, Search, Trash2, MessageSquare } from 'lucide-react';
 import type { TopUpRequestFromAPI } from '@/lib/types';
 import apiClient, { ApiError } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
@@ -81,7 +81,14 @@ export default function TopUpHistoryPage() {
     setEndDate('');
     setAdminUsernameQuery('');
     setUserSearchQuery('');
-    fetchHistory(); 
+    // The useCallback for fetchHistory will be re-created, but useEffect won't run it automatically.
+    // We need to trigger it manually after clearing state.
+    // A simple way is to wrap it in a function that sets state and then calls fetch.
+    // For now, let's assume this is a simple implementation and call it directly,
+    // though a more robust solution might use a state management library or another useEffect trigger.
+    // Let's call fetch manually after state updates.
+    // We'll call it inside a timeout to allow state to update before fetch uses it.
+    setTimeout(() => fetchHistory(), 0);
   };
 
 
@@ -103,13 +110,10 @@ export default function TopUpHistoryPage() {
 
     if (request.receiptData && request.receiptMimeType) {
       try {
+        // Handle both backend buffer formats
         if (typeof request.receiptData === 'object' && 'data' in request.receiptData && Array.isArray((request.receiptData as any).data)) {
           buffer = Buffer.from((request.receiptData as any).data);
-        } 
-        else if (Array.isArray(request.receiptData) && request.receiptData.every(item => typeof item === 'number' && item >= 0 && item <= 255)) {
-          buffer = Buffer.from(request.receiptData as number[]);
-        } 
-        else if (typeof request.receiptData === 'string') {
+        } else if (typeof request.receiptData === 'string') {
           buffer = Buffer.from(request.receiptData, 'base64');
         }
 
@@ -182,7 +186,7 @@ export default function TopUpHistoryPage() {
   };
 
 
-  if (isLoadingAdminAuth || (!isAdminAuthenticated && !isLoadingAdminAuth && pathname !== '/admin/login')) {
+  if (isLoadingAdminAuth || (!isAdminAuthenticated && pathname !== '/admin/login')) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -193,23 +197,24 @@ export default function TopUpHistoryPage() {
     );
   }
 
+
   return (
     <div className="space-y-6">
       <div className="text-center pt-2">
-        <h1 className="text-3xl font-bold text-primary mb-1">
+        <h1 className="text-2xl md:text-3xl font-bold text-primary mb-1">
           Top-Up Request History
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm md:text-base text-muted-foreground">
           View and filter submitted top-up requests.
         </p>
       </div>
 
       <Card className="shadow-lg border-border bg-card">
-        <CardHeader className="p-5 border-b">
-            <div className="flex items-center justify-between">
+        <CardHeader className="p-4 md:p-5 border-b">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center">
-                    <HistoryIcon className="h-7 w-7 text-primary mr-3" />
-                    <CardTitle className="text-xl text-primary-foreground">All Requests</CardTitle>
+                    <HistoryIcon className="h-6 w-6 md:h-7 md:w-7 text-primary mr-2 md:mr-3" />
+                    <CardTitle className="text-lg md:text-xl text-primary-foreground">All Requests</CardTitle>
                 </div>
                 <div className="flex items-center space-x-2">
                     <Button variant="outline" size="sm" onClick={fetchHistory} disabled={isLoadingHistory}>
@@ -218,26 +223,26 @@ export default function TopUpHistoryPage() {
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleDownloadReport} disabled={isLoadingHistory || requestsHistory.length === 0} className="bg-accent text-accent-foreground hover:bg-accent/90 border-accent">
                         <Download className="mr-2 h-4 w-4" />
-                        Download Report
+                        Download
                     </Button>
                 </div>
             </div>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <div>
-                <Label htmlFor="startDate" className="text-sm text-muted-foreground mb-1 block">Start Date</Label>
-                <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-background/70"/>
+                <Label htmlFor="startDate" className="text-xs font-medium text-muted-foreground mb-1 block">Start Date</Label>
+                <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-background/70 h-9 text-sm"/>
               </div>
               <div>
-                <Label htmlFor="endDate" className="text-sm text-muted-foreground mb-1 block">End Date</Label>
-                <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-background/70"/>
+                <Label htmlFor="endDate" className="text-xs font-medium text-muted-foreground mb-1 block">End Date</Label>
+                <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-background/70 h-9 text-sm"/>
               </div>
               <div>
-                <Label htmlFor="adminUsernameQuery" className="text-sm text-muted-foreground mb-1 block">Admin Username</Label>
-                <Input id="adminUsernameQuery" type="text" placeholder="e.g., admin_user" value={adminUsernameQuery} onChange={(e) => setAdminUsernameQuery(e.target.value)} className="bg-background/70"/>
+                <Label htmlFor="adminUsernameQuery" className="text-xs font-medium text-muted-foreground mb-1 block">Admin Username</Label>
+                <Input id="adminUsernameQuery" type="text" placeholder="e.g., admin_user" value={adminUsernameQuery} onChange={(e) => setAdminUsernameQuery(e.target.value)} className="bg-background/70 h-9 text-sm"/>
               </div>
               <div>
-                <Label htmlFor="userSearchQuery" className="text-sm text-muted-foreground mb-1 block">User Search (Tag/Email)</Label>
-                <Input id="userSearchQuery" type="text" placeholder="e.g., PlayerOne or player@example.com" value={userSearchQuery} onChange={(e) => setUserSearchQuery(e.target.value)} className="bg-background/70"/>
+                <Label htmlFor="userSearchQuery" className="text-xs font-medium text-muted-foreground mb-1 block">User (Tag/Email)</Label>
+                <Input id="userSearchQuery" type="text" placeholder="e.g., PlayerOne" value={userSearchQuery} onChange={(e) => setUserSearchQuery(e.target.value)} className="bg-background/70 h-9 text-sm"/>
               </div>
             </div>
             <div className="mt-3 flex space-x-2">
@@ -272,14 +277,12 @@ export default function TopUpHistoryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[180px]">User</TableHead>
-                    <TableHead>Amount (₹)</TableHead>
-                    <TableHead className="min-w-[150px]">Requested At (IST)</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="hidden sm:table-cell min-w-[120px]">Reviewed By</TableHead>
-                    <TableHead className="hidden md:table-cell min-w-[150px]">Reviewed At (IST)</TableHead>
-                    <TableHead>Receipt</TableHead>
-                    <TableHead className="hidden lg:table-cell min-w-[150px]">Admin Notes</TableHead>
+                    <TableHead className="px-3 py-3">User</TableHead>
+                    <TableHead className="hidden sm:table-cell px-3 py-3">Amount</TableHead>
+                    <TableHead className="px-3 py-3">Status</TableHead>
+                    <TableHead className="hidden md:table-cell px-3 py-3">Requested At</TableHead>
+                    <TableHead className="hidden lg:table-cell px-3 py-3">Admin Notes</TableHead>
+                    <TableHead className="text-center px-3 py-3">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -287,34 +290,27 @@ export default function TopUpHistoryPage() {
                     const requestedAtIST = request.requestedAt 
                         ? new Date(request.requestedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })
                         : 'N/A';
-                    const reviewedAtIST = request.reviewedAt 
-                        ? new Date(request.reviewedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })
-                        : 'N/A';
                     return (
                     <TableRow key={request._id}>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="font-medium text-foreground truncate max-w-[150px]">{request.user?.gamerTag || 'N/A'}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[150px]">{request.user?.email || 'N/A'}</div>
+                      <TableCell className="px-3 py-2">
+                        <div className="font-medium text-foreground truncate max-w-[120px] sm:max-w-[150px]">{request.user?.gamerTag || 'N/A'}</div>
+                        <div className="hidden sm:block text-xs text-muted-foreground truncate max-w-[150px]">{request.user?.email || 'N/A'}</div>
                       </TableCell>
-                      <TableCell className="font-medium">₹{request.amount.toFixed(2)}</TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{requestedAtIST}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell font-medium px-3 py-2">₹{request.amount.toFixed(2)}</TableCell>
+                       <TableCell className="px-3 py-2">
                         <Badge variant="outline" className={cn("capitalize text-xs font-normal whitespace-nowrap", getStatusBadgeVariant(request.status))}>
                           {request.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell truncate max-w-[100px] whitespace-nowrap">{request.reviewedBy?.username || 'N/A'}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm whitespace-nowrap">{reviewedAtIST}</TableCell>
-                      <TableCell>
-                        {request.receiptData && request.receiptMimeType ? (
+                      <TableCell className="hidden md:table-cell text-sm whitespace-nowrap px-3 py-2">{requestedAtIST}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-xs text-muted-foreground truncate max-w-[150px] px-3 py-2">{request.adminNotes || 'N/A'}</TableCell>
+                      <TableCell className="text-center px-3 py-2">
+                        {request.receiptData && request.receiptMimeType && (
                             <Button variant="outline" size="icon" onClick={() => handleViewReceipt(request)} className="h-7 w-7">
                                 <Eye className="h-3.5 w-3.5"/>
                             </Button>
-                        ) : (
-                            <span className="text-xs text-muted-foreground">None</span>
                         )}
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell text-xs text-muted-foreground truncate max-w-[150px]">{request.adminNotes || 'N/A'}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -341,7 +337,7 @@ export default function TopUpHistoryPage() {
                     > <X className="h-5 w-5"/> </Button>
                 </CardHeader>
                 <CardContent className="p-2 flex-grow overflow-y-auto">
-                    <div className="relative w-full min-h-[60vh] bg-muted/30 rounded">
+                    <div className="relative w-full min-h-[50vh] sm:min-h-[60vh] bg-muted/30 rounded">
                         <NextImage src={selectedRequestReceipt} alt="Receipt" layout="fill" objectFit="contain" data-ai-hint="receipt financial document" />
                     </div>
                 </CardContent>
@@ -351,4 +347,3 @@ export default function TopUpHistoryPage() {
     </div>
   );
 }
-

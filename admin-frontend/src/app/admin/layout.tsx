@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useAdminAuth } from '@/contexts/AdminAuthContext'; // Ensure this path is correct
-import { LogOut, ShieldCheck, Loader2, UserCircle, LayoutDashboard, History, DollarSign, Megaphone } from 'lucide-react'; // Added Megaphone
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { LogOut, ShieldCheck, Loader2, UserCircle, LayoutDashboard, History, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect } from 'react';
-import { cn } from '@/lib/utils'; // Ensure this path is correct
+import { cn } from '@/lib/utils';
 
 export default function AdminLayout({ children }: { children: React.ReactNode; }) {
   const { isAdminAuthenticated, isLoadingAdminAuth, adminLogout, adminUser } = useAdminAuth();
@@ -40,7 +40,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode; }
     { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/history', label: 'History', icon: History },
     { href: '/admin/pricing', label: 'Pricing', icon: DollarSign },
-    { href: '/admin/promotions', label: 'Promotions', icon: Megaphone },
   ];
 
   return (
@@ -56,30 +55,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode; }
                 </a>
               </Link>
               <nav className="flex items-center space-x-1 md:space-x-2">
-                {navItems.map((item) => (
-                  <Link href={item.href} key={item.href} passHref legacyBehavior>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "text-sm", // Base styling for all sizes
-                        pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/admin/dashboard') // Check if current path starts with item.href for active sub-routes, but exclude dashboard which is exact
-                          ? "text-primary font-semibold bg-primary/10"
-                          : "text-muted-foreground hover:text-primary hover:bg-primary/5"
-                      )}
-                    >
-                      <item.icon className="h-4 w-4 md:mr-2" />
-                      <span className="hidden md:inline">{item.label}</span>
-                    </Button>
-                  </Link>
-                ))}
+                {navItems.map((item) => {
+                  const isActive = item.href === '/admin/dashboard'
+                    ? pathname === item.href
+                    : pathname.startsWith(item.href);
+                  
+                  return (
+                    <Link href={item.href} key={item.href} passHref legacyBehavior>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "text-sm",
+                          isActive
+                            ? "text-primary font-semibold bg-primary/10"
+                            : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">{item.label}</span>
+                      </Button>
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
             <div className="flex items-center space-x-3">
               {adminUser && (
                 <div className="flex items-center space-x-1 text-sm text-foreground">
                   <UserCircle className="h-5 w-5 text-primary"/>
-                  <span className="hidden sm:inline"> {/* Hide username on very small screens if needed */}
+                  <span className="hidden sm:inline">
                     {adminUser.username}
                   </span>
                 </div>
@@ -98,7 +103,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode; }
         </header>
       )}
       <main className="flex-grow container mx-auto py-6 md:py-8">
-        {/* Render children only if authenticated or on the login page */}
         {(isAdminAuthenticated || pathname === '/admin/login') ? children : null}
       </main>
       <footer className="py-4 text-center text-muted-foreground text-xs border-t border-border bg-card/80 mt-auto">

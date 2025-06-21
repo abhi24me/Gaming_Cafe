@@ -19,12 +19,13 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const [receiptDisplayUrl, setReceiptDisplayUrl] = useState<string>('https://placehold.co/300x200.png?text=Processing...');
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   useEffect(() => {
     let url = 'https://placehold.co/300x200.png?text=Processing...';
-    if (request.receiptData && request.receiptMimeType && Array.isArray(request.receiptData.data)) {
+    if (request.receiptData && request.receiptMimeType) {
       try {
-        const buffer = Buffer.from(request.receiptData.data);
+        const buffer = Buffer.from((request.receiptData as any).data || request.receiptData);
         const base64String = buffer.toString('base64');
         url = `data:${request.receiptMimeType};base64,${base64String}`;
       } catch (e) {
@@ -36,7 +37,6 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
     }
     setReceiptDisplayUrl(url);
   }, [request.receiptData, request.receiptMimeType]);
-
 
   const handleApprove = async () => {
     setIsProcessing(true);
@@ -75,13 +75,14 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
     : 'N/A';
 
   return (
+    <>
     <Card className="bg-card shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col">
       <CardHeader className="p-4 border-b">
-        <CardTitle className="text-lg text-primary flex items-center">
+        <CardTitle className="text-base sm:text-lg text-primary flex items-center">
           <Landmark className="mr-2 h-5 w-5" />
           Top-Up: ₹{request.amount.toFixed(2)}
         </CardTitle>
-        <CardDescription className="text-xs text-muted-foreground mt-0.5">
+        <CardDescription className="text-xs text-muted-foreground mt-0.5 break-all">
           ID: {request._id}
         </CardDescription>
       </CardHeader>
@@ -99,9 +100,9 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
         </p>
         
         <div className="mt-3 pt-3 border-t">
-            <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Payment Receipt:</h4>
+            <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Payment Receipt:</h4>
             {(receiptDisplayUrl.startsWith('data:') || receiptDisplayUrl.startsWith('http')) && !receiptDisplayUrl.includes('Processing...') ? (
-                 <a href={receiptDisplayUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-48 rounded border border-border overflow-hidden group bg-muted/20">
+                 <button onClick={() => setIsReceiptModalOpen(true)} className="block w-full h-40 sm:h-48 rounded border border-border overflow-hidden group bg-muted/20 relative">
                     <NextImage 
                         src={receiptDisplayUrl}
                         alt={`Receipt for request ${request._id}`}
@@ -110,12 +111,12 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
                         className="group-hover:opacity-80 transition-opacity p-1"
                         data-ai-hint="payment receipt financial document"
                     />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <ImageIcon className="h-8 w-8 text-white" />
                     </div>
-                </a>
+                </button>
             ) : (
-                <div className="flex items-center justify-center h-48 bg-muted/50 rounded border border-dashed text-muted-foreground p-2 text-center">
+                <div className="flex items-center justify-center h-40 sm:h-48 bg-muted/50 rounded border border-dashed text-muted-foreground p-2 text-center">
                     {receiptDisplayUrl.includes('Processing...') ? <Loader2 className="h-6 w-6 animate-spin"/> : <AlertTriangle className="h-6 w-6 mr-2"/>}
                     <p className="ml-2">{receiptDisplayUrl.includes('Processing...') ? 'Loading...' : 'Receipt not available'}</p>
                 </div>
@@ -123,11 +124,11 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
         </div>
 
       </CardContent>
-      <CardFooter className="p-3 bg-muted/30 border-t flex space-x-2">
+      <CardFooter className="p-3 bg-muted/30 border-t flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
         <Button 
           onClick={handleApprove} 
           disabled={isProcessing} 
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+          className="flex-1 w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
         >
           {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CheckCircle className="mr-2 h-4 w-4" />}
           Approve
@@ -136,12 +137,37 @@ export default function PendingRequestCard({ request, onActionSuccess }: Pending
           onClick={handleReject} 
           disabled={isProcessing} 
           variant="destructive"
-          className="flex-1"
+          className="flex-1 w-full sm:w-auto"
         >
           {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <XCircle className="mr-2 h-4 w-4" />}
           Reject
         </Button>
       </CardFooter>
     </Card>
+
+    {isReceiptModalOpen && (
+        <div 
+            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4"
+            onClick={() => setIsReceiptModalOpen(false)} 
+        >
+            <Card className="w-full max-w-lg max-h-[90vh] overflow-hidden bg-card flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <CardHeader className="p-4 flex flex-row justify-between items-center border-b">
+                    <CardTitle className="text-lg text-primary">Payment Receipt</CardTitle>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => setIsReceiptModalOpen(false)}
+                    > <XCircle className="h-5 w-5"/> </Button>
+                </CardHeader>
+                <CardContent className="p-2 flex-grow overflow-y-auto">
+                    <div className="relative w-full min-h-[50vh] sm:min-h-[60vh] bg-muted/30 rounded">
+                        <NextImage src={receiptDisplayUrl} alt="Receipt" layout="fill" objectFit="contain" data-ai-hint="receipt financial document" />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+      )}
+    </>
   );
 }

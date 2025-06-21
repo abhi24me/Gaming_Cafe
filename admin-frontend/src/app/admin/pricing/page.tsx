@@ -27,33 +27,26 @@ import {
 
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Helper function to convert UTC "HH:MM" string to IST "HH:MM" string for display
 function convertUtcHHMMtoIstHHMM(utcHHMM: string): string {
   if (!utcHHMM || !utcHHMM.match(/^([01]\d|2[0-3]):([0-5]\d)$/)) {
-    console.warn("Invalid UTC HH:MM format for conversion:", utcHHMM);
     return "Invalid Time";
   }
   const [hours, minutes] = utcHHMM.split(':').map(Number);
-  
-  // Create a date object with the UTC time on a reference date
-  const tempDate = new Date(); // Can be any date, only time matters
+  const tempDate = new Date();
   tempDate.setUTCHours(hours, minutes, 0, 0);
 
-  // Format this date object to IST "HH:MM"
   try {
-    const formatter = new Intl.DateTimeFormat('en-GB', { // en-GB locale often gives HH:MM by default
+    const formatter = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Kolkata',
-      hourCycle: 'h23' // Ensures 24-hour format
+      hourCycle: 'h23'
     });
     return formatter.format(tempDate);
   } catch (error) {
-    console.error("Error formatting time to IST:", error);
     return "Format Error";
   }
 }
-
 
 export default function ScreenPricingPage() {
   const { isAdminAuthenticated, isLoadingAdminAuth } = useAdminAuth();
@@ -70,7 +63,6 @@ export default function ScreenPricingPage() {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [overrideToRemove, setOverrideToRemove] = useState<{ screenId: string; overrideId: string; screenName: string } | null>(null);
   const [isDeletingOverride, setIsDeletingOverride] = useState(false);
-
 
   const fetchScreens = useCallback(async () => {
     if (isAdminAuthenticated) {
@@ -123,7 +115,7 @@ export default function ScreenPricingPage() {
   };
 
   const handleRemoveOverride = async () => {
-    if (!overrideToRemove || !overrideToRemove.overrideId) { // Ensure overrideId exists
+    if (!overrideToRemove || !overrideToRemove.overrideId) {
         toast({title: "Error", description: "Override ID is missing.", variant: "destructive"});
         return;
     }
@@ -207,32 +199,32 @@ export default function ScreenPricingPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[150px] sm:min-w-[200px] px-2 py-3 md:px-4">Screen Name</TableHead>
-                      <TableHead className="px-2 py-3 md:px-4">Base Price (₹)</TableHead>
-                      <TableHead className="px-2 py-3 md:px-4">Active</TableHead>
-                      <TableHead className="text-center px-2 py-3 md:px-4">Price Overrides (IST)</TableHead>
-                      <TableHead className="text-right px-2 py-3 md:px-4">Actions</TableHead>
+                      <TableHead className="px-3 py-3">Screen</TableHead>
+                      <TableHead className="hidden sm:table-cell px-3 py-3">Base Price</TableHead>
+                      <TableHead className="px-3 py-3">Active</TableHead>
+                      <TableHead className="hidden md:table-cell text-center px-3 py-3">Price Overrides (IST)</TableHead>
+                      <TableHead className="text-right px-3 py-3">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {screens.map((screen) => (
                       <TableRow key={screen._id}>
-                        <TableCell className="whitespace-nowrap px-2 py-3 md:px-4">
-                          <div className="font-medium text-foreground text-sm md:text-base">{screen.name}</div>
-                          <div className="text-xs text-muted-foreground truncate max-w-xs">{screen.description}</div>
+                        <TableCell className="px-3 py-2">
+                          <div className="font-medium text-foreground text-sm">{screen.name}</div>
+                          <div className="hidden sm:block text-xs text-muted-foreground truncate max-w-xs">{screen.description}</div>
                         </TableCell>
-                        <TableCell className="font-medium px-2 py-3 md:px-4 text-sm md:text-base">
+                        <TableCell className="hidden sm:table-cell font-medium px-3 py-2">
                           ₹{screen.basePrice.toFixed(2)}
-                          <Button variant="ghost" size="icon" className="ml-1 md:ml-2 h-5 w-5 md:h-6 md:w-6" onClick={() => toast({title: "Edit Base Price", description: "Functionality to edit base price coming soon."})}>
-                              <Edit className="h-3 w-3 md:h-3.5 md:w-3.5 text-blue-500"/>
+                          <Button variant="ghost" size="icon" className="ml-1 h-6 w-6" onClick={() => toast({title: "Edit Base Price", description: "Functionality to edit base price coming soon."})}>
+                              <Edit className="h-3 w-3 text-blue-500"/>
                           </Button>
                         </TableCell>
-                        <TableCell className="px-2 py-3 md:px-4">
+                        <TableCell className="px-3 py-2">
                           <Badge variant={screen.isActive ? "default" : "destructive"} className={cn("text-xs font-normal whitespace-nowrap", screen.isActive ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-600" : "bg-red-100 text-red-700 border-red-300 dark:bg-red-700/30 dark:text-red-300 dark:border-red-600")}>
                             {screen.isActive ? 'Yes' : 'No'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="px-2 py-3 md:px-4">
+                        <TableCell className="hidden md:table-cell px-3 py-2">
                           <div className="flex flex-col items-center space-y-1">
                             {screen.priceOverrides && screen.priceOverrides.length > 0 ? (
                               <div className="space-y-1 max-w-xs w-full">
@@ -255,9 +247,9 @@ export default function ScreenPricingPage() {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-2 py-3 md:px-4">
-                          <Button variant="outline" size="sm" className="h-8 text-xs md:text-sm" onClick={() => toast({title: "Edit Screen", description: "More screen editing options coming soon."})}>
-                              <Edit className="mr-1 md:mr-2 h-3.5 w-3.5 md:h-4 md:w-4"/> Manage
+                        <TableCell className="text-right px-3 py-2">
+                          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => toast({title: "Edit Screen", description: "More screen editing options coming soon."})}>
+                              <Edit className="mr-1 h-3.5 w-3.5"/> Manage
                           </Button>
                         </TableCell>
                       </TableRow>

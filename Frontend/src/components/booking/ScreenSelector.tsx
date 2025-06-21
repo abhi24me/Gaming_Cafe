@@ -3,7 +3,6 @@
 
 import type { Screen } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Monitor, Tv2, Gamepad2 } from 'lucide-react'; // Default icons
 
@@ -55,13 +54,13 @@ export default function ScreenSelector({ screens, onScreenSelect }: ScreenSelect
               <p className="text-muted-foreground mb-3 sm:mb-4 text-xs sm:text-sm">
                 {screen.description || `Experience immersive gaming on our state-of-the-art ${screen.name?.toLowerCase() || 'setup'}. Perfect for solo adventures or battling with friends.`}
               </p>
-              <Button
+              <button
                 onClick={() => onScreenSelect(screen)}
-                className="w-full btn-glow-primary btn-gradient-primary-accent mt-auto text-sm sm:text-lg py-2 sm:py-3"
+                className="glowbutton mt-auto w-full"
                 aria-label={`Choose ${screen.name}`}
               >
                 Choose {screen.name}
-              </Button>
+              </button>
             </CardContent>
           </Card>
         );

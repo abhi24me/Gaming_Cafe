@@ -4,14 +4,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogIn } from 'lucide-react';
+// Note: ShadCN components like Card and Button are no longer used here.
+// The new styling is handled by custom classes in globals.css.
 
 export default function LoginPage() {
-  const [emailInput, setEmailInput] = useState(''); // Changed from gamerTagInput
+  const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -26,58 +23,48 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="bg-card/90 backdrop-blur-sm border-glow-primary w-full">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl sm:text-3xl text-primary flex items-center justify-center">
-          <LogIn className="mr-2 h-6 w-6 sm:h-7 sm:w-7" /> Enter Tron
-        </CardTitle>
-        <CardDescription className="text-foreground/80 pt-1">
-          Enter your Email and Password to continue.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="emailLogin" className="text-foreground/90">Email</Label>
-            <Input
-              id="emailLogin"
-              type="email" // Changed from text
-              placeholder="e.g., player@Tron.com" // Changed placeholder
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              required
-              className="bg-background border-primary focus:ring-primary text-base"
-              disabled={isLoading}
-            />
+    // The new layout does not use the <Card> component.
+    // Instead, it uses custom CSS classes for the futuristic look.
+    <>
+      <form className="login-form-container" onSubmit={handleSubmit}>
+        <div className="input-container">
+          <div className="input-content">
+            <div className="input-dist">
+              <div className="input-type">
+                <input
+                  className="input-is"
+                  type="email"
+                  required
+                  placeholder="Email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  disabled={isLoading}
+                />
+                <input
+                  className="input-is"
+                  type="password"
+                  required
+                  placeholder="Password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  disabled={isLoading}
+                />
+                <button className="submit" type="submit" disabled={isLoading}>
+                  {isLoading ? 'Logging In...' : 'Submit'}
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="passwordLogin" className="text-foreground/90">Password</Label>
-            <Input
-              id="passwordLogin"
-              type="password"
-              placeholder="••••••••"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              required
-              className="bg-background border-primary focus:ring-primary text-base"
-              disabled={isLoading}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col items-center space-y-3">
-          <Button type="submit" className="w-full btn-gradient-primary-accent btn-glow-primary text-lg py-3" disabled={isLoading}>
-            {isLoading ? 'Logging In...' : 'Login'}
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" legacyBehavior passHref>
-              <a className="font-semibold text-primary hover:underline">
-                Sign up here
-              </a>
-            </Link>
-          </p>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+      <p className="text-center text-sm text-muted-foreground mt-6">
+        Don&apos;t have an account?{' '}
+        <Link href="/signup" legacyBehavior passHref>
+          <a className="font-semibold text-primary hover:underline">
+            Sign up here
+          </a>
+        </Link>
+      </p>
+    </>
   );
 }

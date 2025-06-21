@@ -9,7 +9,7 @@ body {
 
 @layer base {
   :root {
-    /* Tron Color Palette */
+    /* Wello Color Palette */
     --background: 0 0% 5%; /* Jet Black #0D0D0D */
     --foreground: 0 0% 95%; /* Light Gray/White */
 
@@ -49,6 +49,7 @@ body {
     /* Custom variables for glow effects */
     --primary-glow: 211 100% 50%; /* Electric Blue for primary glow */
     --accent-glow: 259 52% 51%;   /* Deep Purple for accent glow */
+
 
     --sidebar-background: 0 0% 3%;
     --sidebar-foreground: 0 0% 95%;
@@ -144,4 +145,80 @@ body {
   .btn-gradient-primary-accent:hover {
      @apply brightness-110;
   }
+}
+
+/* From Uiverse.io by ilkhoeri - For Game Carousel */
+.wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Custom wrapper height for integration */
+.game-carousel-wrapper {
+    min-height: 450px;
+}
+
+.inner {
+  --w: 120px; /* Increased size */
+  --h: 180px; /* Increased size */
+  --translateZ: calc((var(--w) + var(--h)) * 0.7); /* Adjusted for better perspective */
+  --rotateX: -15deg;
+  --perspective: 1000px;
+  position: absolute;
+  width: var(--w);
+  height: var(--h);
+  top: 25%;
+  left: calc(50% - (var(--w) / 2) - 2.5px);
+  z-index: 2;
+  transform-style: preserve-3d;
+  transform: perspective(var(--perspective));
+  animation: rotating 20s linear infinite;
+}
+@keyframes rotating {
+  from {
+    transform: perspective(var(--perspective)) rotateX(var(--rotateX))
+      rotateY(0);
+  }
+  to {
+    transform: perspective(var(--perspective)) rotateX(var(--rotateX))
+      rotateY(1turn);
+  }
+}
+
+.card {
+  position: absolute;
+  border: 2px solid rgba(var(--color-card));
+  border-radius: 12px;
+  overflow: hidden;
+  inset: 0;
+  transform: rotateY(calc((360deg / var(--quantity)) * var(--index)))
+    translateZ(var(--translateZ));
+  /* Add a backdrop blur for a cool effect */
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img {
+  position: relative; /* For positioning child elements like overlays */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Custom class for game title */
+.game-title {
+    font-family: var(--font-heading);
+    color: hsl(var(--foreground));
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px hsl(var(--background));
 }

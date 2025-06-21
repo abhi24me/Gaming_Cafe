@@ -13,6 +13,8 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useAuth } from '@/contexts/AuthContext';
 import apiClient, { ApiError } from '@/lib/apiClient';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import GameCarousel from '@/components/home/GameCarousel';
 
 type BookingStep = 'screen' | 'date' | 'time' | 'confirm';
 
@@ -40,6 +42,13 @@ export default function HomePage() {
   const { toast } = useToast();
   const { fetchWalletData } = useWallet();
   const { isAuthenticated, isLoadingAuth } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoadingAuth && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isLoadingAuth, isAuthenticated, router]);
 
   useEffect(() => {
     const loadScreens = async () => {
@@ -60,7 +69,7 @@ export default function HomePage() {
       }
     };
 
-    if (!isLoadingAuth) {
+    if (!isLoadingAuth && isAuthenticated) {
       loadScreens();
     }
   }, [isAuthenticated, isLoadingAuth, toast]);
@@ -227,24 +236,17 @@ export default function HomePage() {
     setBookingStep('time');
   };
 
-  if (isLoadingAuth) {
+  if (isLoadingAuth || !isAuthenticated) {
     return (
       <div className="flex justify-center items-center h-full min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg">Loading Authentication...</p>
+        <p className="ml-4 text-lg">
+          {isLoadingAuth ? "Authenticating..." : "Redirecting to login..."}
+        </p>
       </div>
     );
   }
 
-  if (!isAuthenticated && !isLoadingAuth) {
-    return (
-      <div className="text-center py-10">
-        <h2 className="text-2xl font-semibold mb-4 text-primary">Welcome to Tron Gaming!</h2>
-        <p className="text-muted-foreground">Please log in to book your gaming session.</p>
-      </div>
-    );
-  }
-  
   const renderStepContent = () => {
     if (isLoadingScreens && bookingStep === 'screen') {
         return (
@@ -283,7 +285,7 @@ export default function HomePage() {
         return selectedScreen && selectedDate && selectedTimeSlot ? (
           <BookingPreview
             screen={selectedScreen}
-            date={selectedDate}
+            date={date}
             slot={selectedTimeSlot}
             onConfirm={prepareForBookingConfirmation}
             onBack={handleBackToTimeSelection}
@@ -298,15 +300,17 @@ export default function HomePage() {
   return (
     <>
       <div className="space-y-8">
-          <div className="text-center mb-8 pt-4">
-              <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary text-transparent bg-clip-text mb-2 inline-block">Book Your Gaming Session</h2>
-              <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-                {bookingStep === 'screen' && "Choose your battle station! Select a screen to begin."}
-                {bookingStep === 'date' && selectedScreen && `Lock in your game day for ${selectedScreen.name}.`}
-                {bookingStep === 'time' && selectedScreen && selectedDate && `Select your prime time for ${selectedScreen.name} on ${selectedDate.toLocaleDateString()}.`}
-                {bookingStep === 'confirm' && "One last check! Make sure everything's perfect."}
-              </p>
-          </div>
+
+          {bookingStep === 'screen' && (
+            <section>
+                <div className="text-center">
+                    <h3 className="text-2xl sm:text-3xl font-bold text-primary">Featured Games</h3>
+                    <p className="text-muted-foreground mt-2">A glimpse of our exciting library.</p>
+                </div>
+                <GameCarousel />
+            </section>
+          )}
+
           {renderStepContent()}
       </div>
 

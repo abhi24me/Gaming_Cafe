@@ -79,29 +79,29 @@ async function sendUserTopUpStatusNotification(user, request) {
     // as the dummy sendMail function returns a rejected promise.
 
     const isApproved = request.status === 'approved';
-    const subject = `Update on your Tron Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
+    const subject = `Update on your WelloSphere Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
     
     const textBody = isApproved
-      ? `Hello ${user.gamerTag},\n\nGreat news! Your top-up request for ₹${request.amount.toFixed(2)} has been approved and the amount has been added to your wallet.\n\nHappy Gaming!\nThe Tron Team`
-      : `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe Tron Team`;
+      ? `Hello ${user.gamerTag},\n\nGreat news! Your top-up request for ₹${request.amount.toFixed(2)} has been approved and the amount has been added to your wallet.\n\nHappy Gaming!\nThe WelloSphere Team`
+      : `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe WelloSphere Team`;
 
     const htmlBody = isApproved
       ? `
         <p>Hello ${user.gamerTag},</p>
-        <p>Great news! Your top-up request for <strong>₹${request.amount.toFixed(2)}</strong> has been approved and the amount has been added to your Tron wallet.</p>
+        <p>Great news! Your top-up request for <strong>₹${request.amount.toFixed(2)}</strong> has been approved and the amount has been added to your WelloSphere wallet.</p>
         <p>Happy Gaming!</p>
-        <p>The Tron Team</p>
+        <p>The WelloSphere Team</p>
       `
       : `
         <p>Hello ${user.gamerTag},</p>
         <p>We have an update on your top-up request for <strong>₹${request.amount.toFixed(2)}</strong>. Unfortunately, it has been rejected.</p>
         <p><strong>Reason:</strong> ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}</p>
         <p>Regards,</p>
-        <p>The Tron Team</p>
+        <p>The WelloSphere Team</p>
       `;
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"Tron Notifications" <noreply@Tron.example.com>',
+      from: process.env.SMTP_USER || '"WelloSphere Notifications" <noreply@wellosphere.example.com>',
       to: user.email,
       subject: subject,
       text: textBody,
@@ -294,6 +294,61 @@ exports.rejectTopUpRequest = async (req, res) => {
   } catch (error) {
     console.error('Reject TopUp Request Error:', error);
     res.status(500).json({ message: 'Server error while rejecting request.' });
+  }
+};
+
+exports.sendPromotionalEmail = async (req, res) => {
+  const { subject, htmlBody } = req.body;
+  const adminUsername = req.admin.username;
+
+  if (!subject || !htmlBody) {
+    return res.status(400).json({ message: 'Email subject and body are required.' });
+  }
+
+  try {
+    const users = await User.find({ email: { $exists: true, $ne: null } }).select('email');
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'No users with emails found to send promotions to.' });
+    }
+
+    const emails = users.map(user => user.email);
+    // Simple conversion from HTML to text for the text part of the email
+    const textBody = htmlBody.replace(/<[^>]*>?/gm, ''); 
+
+    const transporter = await getEmailTransporter();
+    
+    // // Using BCC is more efficient and protects user privacy
+    // const mailOptions = {
+    //   from: process.env.SMTP_USER || `"WelloSphere Offers" <offers@wellosphere.example.com>`,
+    //   to: 'amalkuniyilparambath@gmail.com', // Send a copy to the admin account for record-keeping
+    //   subject: subject,
+    //   text: textBody,
+    //   html: htmlBody,
+    // };
+
+    const mailOptions = {
+      from: process.env.SMTP_USER || '"WelloSphere Notifications" <noreply@wellosphere.example.com>',
+      to: emails,
+      bcc: 'amalsreechaithanya@gmail.com',
+      subject: subject,
+      text: textBody,
+      html: htmlBody,
+    };
+
+    console.log('emails',emails)
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Promotional email sent by ${adminUsername} with messageId: ${info.messageId}`);
+     if (nodemailer.getTestMessageUrl(info)) {
+      console.log("Preview URL (Ethereal): %s", nodemailer.getTestMessageUrl(info));
+    }
+
+
+    res.status(200).json({ message: `Promotional email sent successfully to ${emails.length} users.` });
+
+  } catch (error) {
+    console.error('Error sending promotional email:', error);
+    res.status(500).json({ message: 'Server error while sending promotional emails.' });
   }
 };
 

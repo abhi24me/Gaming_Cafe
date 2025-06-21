@@ -285,7 +285,7 @@ export default function HomePage() {
         return selectedScreen && selectedDate && selectedTimeSlot ? (
           <BookingPreview
             screen={selectedScreen}
-            date={date}
+            date={selectedDate}
             slot={selectedTimeSlot}
             onConfirm={prepareForBookingConfirmation}
             onBack={handleBackToTimeSelection}

@@ -1,16 +1,11 @@
+const User = require("../models/User");
+const Transaction = require("../models/Transaction");
+const TopUpRequest = require("../models/TopUpRequest");
+const Admin = require("../models/Admin");
+const mongoose = require("mongoose");
+const nodemailer = require("nodemailer");
 
-const User = require('../models/User');
-const Transaction = require('../models/Transaction');
-const TopUpRequest = require('../models/TopUpRequest');
-const Admin = require('../models/Admin');
-const mongoose = require('mongoose');
-const nodemailer = require('nodemailer');
 
-// --- Nodemailer Transporter Setup (Using Ethereal for Testing) ---
-// This setup allows you to test email sending without real credentials.
-// Emails sent via Ethereal can be viewed through a link logged to the console.
-// For production, replace this with your actual email service provider's SMTP details
-// or API key, preferably using environment variables.
 let nodemailerTransporter;
 
 async function getEmailTransporter() {
@@ -20,18 +15,26 @@ async function getEmailTransporter() {
 
   // Check for production email credentials first (using environment variables)
   // Example for a generic SMTP service:
-  // if (process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS) {
-  //   nodemailerTransporter = nodemailer.createTransport({
-  //     host: process.env.SMTP_HOST,
-  //     port: parseInt(process.env.SMTP_PORT, 10),
-  //     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-  //     auth: {
-  //       user: process.env.SMTP_USER,
-  //       pass: process.env.SMTP_PASS,
-  //     },
-  //   });
-  //   console.log('Using production SMTP transporter.');
-  // } else {
+  if (
+    process.env.SMTP_HOST &&
+    process.env.SMTP_PORT &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS
+  ) {
+    
+    nodemailerTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+
+
+  } else {
     // Fallback to Ethereal Email for development/testing if no production config is set
     try {
       let testAccount = await nodemailer.createTestAccount();
@@ -44,35 +47,53 @@ async function getEmailTransporter() {
           pass: testAccount.pass, // Ethereal password
         },
       });
-      console.log('Using Ethereal Email transporter for testing. Preview URL for emails will be logged.');
+      console.log(
+        "Using Ethereal Email transporter for testing. Preview URL for emails will be logged."
+      );
     } catch (err) {
-      console.error('Failed to create Ethereal test account or transporter:', err);
+      console.error(
+        "Failed to create Ethereal test account or transporter:",
+        err
+      );
       // If Ethereal fails, set a dummy transporter to prevent crashes, but log that emails won't be sent.
-      nodemailerTransporter = { sendMail: () => Promise.reject("Email transporter not configured") };
-      console.error("Email notifications will not be sent as transporter setup failed.");
+      nodemailerTransporter = {
+        sendMail: () => Promise.reject("Email transporter not configured"),
+      };
+      console.error(
+        "Email notifications will not be sent as transporter setup failed."
+      );
     }
-  // }
+  }
   return nodemailerTransporter;
 }
-
 
 // Function to send email notification to admins
 async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
   try {
     const transporter = await getEmailTransporter();
-    if (transporter.sendMail.toString().includes("Email transporter not configured")) {
-        console.warn("Skipping admin email notification: Transporter not configured.");
-        return;
-    }
-
-    const adminsToNotify = await Admin.find({ email: { $ne: null, $exists: true } }).select('email username');
-
-    if (adminsToNotify.length === 0) {
-      console.log('New top-up request submitted, but no admins found with registered email addresses for notification.');
+    if (
+      transporter.sendMail
+        .toString()
+        .includes("Email transporter not configured")
+    ) {
+      console.warn(
+        "Skipping admin email notification: Transporter not configured."
+      );
       return;
     }
 
-    const adminEmails = adminsToNotify.map(admin => admin.email);
+    const adminsToNotify = await Admin.find({
+      email: { $ne: null, $exists: true },
+    }).select("email username");
+
+    if (adminsToNotify.length === 0) {
+      console.log(
+        "New top-up request submitted, but no admins found with registered email addresses for notification."
+      );
+      return;
+    }
+
+    const adminEmails = adminsToNotify.map((admin) => admin.email);
     const subject = `New Top-Up Request: ₹${topUpRequest.amount} from ${userRequesting.gamerTag}`;
     const textBody = `A new top-up request has been submitted:
     User: ${userRequesting.gamerTag}
@@ -92,47 +113,52 @@ async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
     `;
 
     const mailOptions = {
-      from: '"WelloSphere Notifications" <noreply@wellosphere.com>', // Sender address (can be anything for Ethereal)
-      to: adminEmails.join(', '), // List of receivers
+      from: process.env.SMTP_USER, // Sender address (can be anything for Ethereal)
+      to: adminEmails.join(", "), // List of receivers
       subject: subject,
       text: textBody,
       html: htmlBody,
     };
 
     let info = await transporter.sendMail(mailOptions);
-    console.log('Admin notification email sent: %s', info.messageId);
+    console.log("Admin notification email sent: %s", info.messageId);
     // For Ethereal, log the preview URL
     if (nodemailer.getTestMessageUrl(info)) {
-      console.log('Preview URL (Ethereal): %s', nodemailer.getTestMessageUrl(info));
+      console.log(
+        "Preview URL (Ethereal): %s",
+        nodemailer.getTestMessageUrl(info)
+      );
     }
-
   } catch (error) {
-    console.error('Error sending admin notification email:', error);
+    console.error("Error sending admin notification email:", error);
     // Do not fail the main request if email notification fails
   }
 }
-
 
 exports.getWalletTransactions = async (req, res) => {
   try {
     const userId = req.user.id;
 
     const confirmedTransactions = await Transaction.find({ user: userId })
-      .select('-receiptData')
+      .select("-receiptData")
       .lean();
 
     const userTopUpRequests = await TopUpRequest.find({
       user: userId,
-      status: { $in: ['pending', 'rejected'] }
+      status: { $in: ["pending", "rejected"] },
     })
-    .select('-receiptData')
-    .lean();
+      .select("-receiptData")
+      .lean();
 
-    const transformedRequests = userTopUpRequests.map(req => ({
+    const transformedRequests = userTopUpRequests.map((req) => ({
       _id: req._id.toString(),
-      type: 'topup-request',
+      type: "topup-request",
       amount: req.amount,
-      description: `Top-Up Request (Status: ${req.status})${req.status === 'rejected' && req.adminNotes ? ` - Reason: ${req.adminNotes}` : ''}`,
+      description: `Top-Up Request (Status: ${req.status})${
+        req.status === "rejected" && req.adminNotes
+          ? ` - Reason: ${req.adminNotes}`
+          : ""
+      }`,
       timestamp: req.requestedAt.toISOString(),
       status: req.status,
       adminNotes: req.adminNotes,
@@ -140,29 +166,37 @@ exports.getWalletTransactions = async (req, res) => {
     }));
 
     const allItems = [...confirmedTransactions, ...transformedRequests];
-    allItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    allItems.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
     res.status(200).json(allItems);
   } catch (error) {
-    console.error('Get Wallet Transactions Error:', error);
-    res.status(500).json({ message: 'Server error while fetching transactions.' });
+    console.error("Get Wallet Transactions Error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while fetching transactions." });
   }
 };
 
 exports.getWalletDetails = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('walletBalance loyaltyPoints');
+    const user = await User.findById(req.user.id).select(
+      "walletBalance loyaltyPoints"
+    );
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json({
       balance: user.walletBalance,
-      loyaltyPoints: user.loyaltyPoints
+      loyaltyPoints: user.loyaltyPoints,
     });
-  } catch (error)
-  {
-    console.error('Get Wallet Details Error:', error);
-    res.status(500).json({ message: 'Server error while fetching wallet details.' });
+  } catch (error) {
+    console.error("Get Wallet Details Error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while fetching wallet details." });
   }
 };
 
@@ -171,32 +205,36 @@ exports.requestTopUp = async (req, res) => {
   const userId = req.user.id;
 
   if (!amount) {
-    return res.status(400).json({ message: 'Amount is required.' });
+    return res.status(400).json({ message: "Amount is required." });
   }
 
   if (!req.file) {
-    return res.status(400).json({ message: 'Payment receipt image is required.' });
+    return res
+      .status(400)
+      .json({ message: "Payment receipt image is required." });
   }
 
   const numericAmount = parseFloat(amount);
   if (isNaN(numericAmount) || numericAmount <= 0) {
-    return res.status(400).json({ message: 'Invalid top-up amount.' });
+    return res.status(400).json({ message: "Invalid top-up amount." });
   }
 
   try {
-    const userRequesting = await User.findById(userId).select('gamerTag');
+    const userRequesting = await User.findById(userId).select("gamerTag");
     if (!userRequesting) {
-        return res.status(404).json({ message: 'User submitting request not found.' });
+      return res
+        .status(404)
+        .json({ message: "User submitting request not found." });
     }
 
     const newTopUpRequest = new TopUpRequest({
       user: userId,
       amount: numericAmount,
-      paymentMethod: paymentMethod || 'UPI',
+      paymentMethod: paymentMethod || "UPI",
       receiptData: req.file.buffer,
       receiptMimeType: req.file.mimetype,
-      status: 'pending',
-      requestedAt: new Date()
+      status: "pending",
+      requestedAt: new Date(),
     });
 
     await newTopUpRequest.save();
@@ -205,21 +243,23 @@ exports.requestTopUp = async (req, res) => {
     await sendAdminTopUpNotification(newTopUpRequest, userRequesting);
 
     res.status(201).json({
-      message: 'Top-up request submitted successfully. It will be reviewed by an admin.',
+      message:
+        "Top-up request submitted successfully. It will be reviewed by an admin.",
       request: {
         _id: newTopUpRequest._id,
         amount: newTopUpRequest.amount,
         status: newTopUpRequest.status,
-        requestedAt: newTopUpRequest.requestedAt
-      }
+        requestedAt: newTopUpRequest.requestedAt,
+      },
     });
-
   } catch (error) {
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({ message: messages.join(', ') });
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
     }
-    console.error('Request Top-Up Error:', error);
-    res.status(500).json({ message: 'Server error while submitting top-up request.' });
+    console.error("Request Top-Up Error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while submitting top-up request." });
   }
 };

@@ -576,3 +576,58 @@ body {
     box-sizing: border-box;
   }
 }
+
+/* Add this to your existing CSS */
+.login-form-container {
+  width: 100%;
+  max-width: 400px; /* Set a max-width for larger screens */
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.input-container {
+  width: 100%;
+  position: relative;
+}
+
+/* Update your existing mobile media query with these changes */
+@media (max-width: 480px) {
+  .login-form-container {
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    transform: scale(0.95); /* Slightly scale down to ensure everything fits */
+    transform-origin: center;
+  }
+
+  .input-container {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    /* Maintain all your effects */
+    filter: drop-shadow(46px 36px 24px #4090b5) 
+            drop-shadow(-55px -40px 25px #9e30a9);
+    animation: blinkShadowsFilter 8s ease-in infinite;
+  }
+
+  .input-content {
+    width: 100%;
+    padding: 0.8rem;
+  }
+
+  .input-dist {
+    width: 100%;
+    padding: 0.8rem;
+  }
+
+  .input-is {
+    font-size: 0.9rem;
+    padding: 0.6em 0.5em;
+  }
+
+  /* Ensure the submit button stays centered */
+  .submit {
+    margin: 1rem auto 0;
+    display: block;
+  }
+}

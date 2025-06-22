@@ -631,3 +631,16 @@ body {
     display: block;
   }
 }
+
+
+/* Nuclear option if still misaligned */
+@supports (-webkit-touch-callout: none) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .login-form-container {
+    margin-left: env(safe-area-inset-left);
+    margin-right: env(safe-area-inset-right);
+  }
+}

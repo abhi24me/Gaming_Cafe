@@ -1,4 +1,3 @@
-
 import { Gamepad2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -8,8 +7,8 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <main className="flex-grow flex flex-col items-center justify-center p-4">
+    <div className="fixed inset-0 overflow-hidden flex flex-col bg-background">
+      <main className="flex-grow flex flex-col items-center justify-center p-4 overflow-y-auto">
         <div className="flex items-center mb-8">
           <Gamepad2 className="h-10 w-10 mr-3 text-primary" />
           <Link href="/" legacyBehavior passHref>

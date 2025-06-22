@@ -551,3 +551,11 @@ body {
     0 0 1.8em 0.5em var(--glow-spread-color),
     inset 0 0 0.5em 0.25em var(--glow-color);
 }
+
+/* Responsive fix for Login Form on mobile devices */
+@media (max-width: 480px) {
+  .input-container {
+    filter: none; /* The large drop-shadow causes overflow. Disable it on mobile. */
+    width: 100%;
+  }
+}

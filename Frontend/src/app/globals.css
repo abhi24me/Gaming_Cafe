@@ -161,7 +161,7 @@ body {
 
 /* Custom wrapper height for integration */
 .game-carousel-wrapper {
-    min-height: 450px;
+    min-height: 480px;
 }
 
 .inner {
@@ -173,7 +173,7 @@ body {
   position: absolute;
   width: var(--w);
   height: var(--h);
-  top: 25%;
+  top: 30%;
   left: calc(50% - (var(--w) / 2) - 2.5px);
   z-index: 2;
   transform-style: preserve-3d;
@@ -553,10 +553,11 @@ body {
 }
 
 /* Responsive fix for Login Form on mobile devices */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .input-container {
-    filter: none; /* The large drop-shadow causes overflow. Disable it on mobile. */
-    width: 75%;
-    height: 50%;
+    filter: none;
+    /* animation: none; */
   }
 }
+
+    

@@ -280,8 +280,8 @@ body {
 }
 
 .input-container {
-  filter: drop-shadow(46px 36px 24px #4090b5)
-    drop-shadow(-55px -40px 25px #9e30a9);
+  /* filter: drop-shadow(46px 36px 24px #4090b5) */
+    /* drop-shadow(-55px -40px 25px #9e30a9); */
   animation: blinkShadowsFilter 8s ease-in infinite;
 }
 

@@ -187,7 +187,7 @@ body {
   }
   to {
     transform: perspective(var(--perspective)) rotateX(var(--rotateX))
-      rotateY(1turn);
+      rotateY(-1turn);
   }
 }
 

@@ -161,7 +161,7 @@ body {
 
 /* Custom wrapper height for integration */
 .game-carousel-wrapper {
-    min-height: 480px;
+    min-height: 450px;
 }
 
 .inner {
@@ -173,7 +173,7 @@ body {
   position: absolute;
   width: var(--w);
   height: var(--h);
-  top: 30%;
+  top: 25%;
   left: calc(50% - (var(--w) / 2) - 2.5px);
   z-index: 2;
   transform-style: preserve-3d;
@@ -555,38 +555,79 @@ body {
 /* Responsive fix for Login Form on mobile devices */
 @media (max-width: 480px) {
   .input-container {
-    width: 90vw;                /* Scale box to 90% of viewport width */
-    max-width: 360px;           /* Cap width at 360px */
-    margin: 2rem auto;          /* Center with vertical spacing */
-    height: auto;               /* Let height adjust to content */
-    padding: 1.2rem 0.8rem;     /* Keep inner padding, tweak spacing */
+    width: 90vw;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    padding: 1.2rem 0.8rem;
     box-sizing: border-box;
-    overflow: visible;          /* Allow pseudo-elements to show */
-    position: relative;         /* Ensure positioned pseudo-elements */
-  }
-
-  /* Keep original glow shadows and clip-paths unchanged */
-  /* (No modifications to ::before, ::after, animations, etc.) */
-
-  .input-dist {
-    padding: 1em 0.5em;         /* Scale internal padding */
-  }
-
-  .input-is {
-    font-size: 1rem;
-    padding: 0.6em 0.5em;       /* Scale internal input padding */
+    overflow: visible;
+    position: relative;
   }
 
   .login-form-container {
     width: 100%;
-    padding: 1rem;
-    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    padding-inline: 1rem; /* Add balanced horizontal padding */
+    box-sizing: border-box;
   }
 }
+
+@media (max-width: 400px) {
+  .input-container {
+    width: 92vw;
+    max-width: 340px;
+    margin: 2rem auto !important;
+    padding: 1.2rem 0.8rem;
+    box-sizing: border-box;
+    position: relative;
+    left: 0;
+    right: 0;
+    transform: translateX(0); /* remove any accidental shifting */
+  }
+
+  .login-form-container {
+    width: 100%;
+    padding: 0 1rem;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+@media (max-width: 350px) {
+  .input-container {
+    width: 88vw;
+    max-width: 320px;
+    margin: 1.5rem auto !important;
+    padding: 1rem;
+    box-sizing: border-box;
+    position: relative;
+    left: 0;
+    right: 0;
+    transform: none; /* ensure no shift */
+  }
+
+  .login-form-container {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+}
+
 
 
     

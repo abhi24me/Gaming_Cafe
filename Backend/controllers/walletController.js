@@ -109,7 +109,7 @@ async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
         <li><strong>Request ID:</strong> ${topUpRequest._id.toString()}</li>
         <li><strong>Payment Method:</strong> ${topUpRequest.paymentMethod}</li>
       </ul>
-      <p>Please review it in the TronSphere admin panel.</p>
+      <p>Please review it in the Tron Gaming admin panel.</p>
     `;
 
     const mailOptions = {

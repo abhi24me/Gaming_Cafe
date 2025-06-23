@@ -60,7 +60,7 @@ app.use('/api/bookings', bookingRoutes);
 
 // Simple root handler for Vercel to check if the app is alive
 app.get('/', (req, res) => {
-  res.send('TronSphere Backend API is running!');
+  res.send('Tron Gaming Backend API is running!');
 });
 
 // Global error handler

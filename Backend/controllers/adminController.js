@@ -79,29 +79,29 @@ async function sendUserTopUpStatusNotification(user, request) {
     // as the dummy sendMail function returns a rejected promise.
 
     const isApproved = request.status === 'approved';
-    const subject = `Update on your TronSphere Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
+    const subject = `Update on your Tron Gaming Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
     
     const textBody = isApproved
-      ? `Hello ${user.gamerTag},\n\nGreat news! Your top-up request for ₹${request.amount.toFixed(2)} has been approved and the amount has been added to your wallet.\n\nHappy Gaming!\nThe TronSphere Team`
-      : `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe TronSphere Team`;
+      ? `Hello ${user.gamerTag},\n\nGreat news! Your top-up request for ₹${request.amount.toFixed(2)} has been approved and the amount has been added to your wallet.\n\nHappy Gaming!\nThe Tron Gaming Team`
+      : `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe Tron Gaming Team`;
 
     const htmlBody = isApproved
       ? `
         <p>Hello ${user.gamerTag},</p>
-        <p>Great news! Your top-up request for <strong>₹${request.amount.toFixed(2)}</strong> has been approved and the amount has been added to your TronSphere wallet.</p>
+        <p>Great news! Your top-up request for <strong>₹${request.amount.toFixed(2)}</strong> has been approved and the amount has been added to your Tron Gaming wallet.</p>
         <p>Happy Gaming!</p>
-        <p>The TronSphere Team</p>
+        <p>The Tron Gaming Team</p>
       `
       : `
         <p>Hello ${user.gamerTag},</p>
         <p>We have an update on your top-up request for <strong>₹${request.amount.toFixed(2)}</strong>. Unfortunately, it has been rejected.</p>
         <p><strong>Reason:</strong> ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}</p>
         <p>Regards,</p>
-        <p>The TronSphere Team</p>
+        <p>The Tron Gaming Team</p>
       `;
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"TronSphere Notifications" <noreply@Tronsphere.example.com>',
+      from: process.env.SMTP_USER || '"Tron Gaming Notifications" <noreply@Tron Gaming.example.com>',
       to: user.email,
       subject: subject,
       text: textBody,
@@ -319,7 +319,7 @@ exports.sendPromotionalEmail = async (req, res) => {
     
     // // Using BCC is more efficient and protects user privacy
     // const mailOptions = {
-    //   from: process.env.SMTP_USER || `"TronSphere Offers" <offers@Tronsphere.example.com>`,
+    //   from: process.env.SMTP_USER || `"Tron Gaming Offers" <offers@Tron Gaming.example.com>`,
     //   to: 'amalkuniyilparambath@gmail.com', // Send a copy to the admin account for record-keeping
     //   subject: subject,
     //   text: textBody,
@@ -327,7 +327,7 @@ exports.sendPromotionalEmail = async (req, res) => {
     // };
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"TronSphere Notifications" <noreply@Tronsphere.example.com>',
+      from: process.env.SMTP_USER || '"Tron Gaming Notifications" <noreply@Tron Gaming.example.com>',
       to: emails,
       bcc: 'amalsreechaithanya@gmail.com',
       subject: subject,

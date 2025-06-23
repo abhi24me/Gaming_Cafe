@@ -6,7 +6,7 @@ import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 
 export const metadata: Metadata = {
   title: 'Tron Admin Panel',
-  description: 'Manage TronSphere operations.',
+  description: 'Manage Tron Gaming operations.',
 };
 
 export default function RootLayout({

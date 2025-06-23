@@ -4,15 +4,15 @@ import React from 'react';
 import Image from 'next/image';
 
 const games = [
-    { name: "GTA V", hint: "grand theft auto" },
-    { name: "God of War", hint: "god of war" },
-    { name: "FIFA 2025", hint: "fifa soccer" },
-    { name: "Ghost of Tsushima", hint: "ghost of tsushima" },
-    { name: "Tekken", hint: "tekken fighting" },
-    { name: "Mortal Kombat", hint: "mortal kombat" },
-    { name: "NFS", hint: "need for speed" },
-    { name: "Prince of Persia", hint: "prince of persia" },
-    { name: "Call of Duty", hint: "call of duty" },
+    { name: "GTA V", hint: "grand theft auto", img: '/images/gtav.png' },
+    { name: "God of War", hint: "god of war", img: '/images/gow.png'  },
+    { name: "FIFA 2025", hint: "fifa soccer", img: '/images/fifa25.png'  },
+    { name: "Ghost of Tsushima", hint: "ghost of tsushima", img: '/images/gow.png'  },
+    { name: "Tekken", hint: "tekken fighting", img: '/images/gow.png' },
+    { name: "Mortal Kombat", hint: "mortal kombat", img: '/images/gow.png' },
+    { name: "NFS", hint: "need for speed", img: '/images/gow.png' },
+    { name: "Prince of Persia", hint: "prince of persia", img: '/images/gow.png' },
+    { name: "Call of Duty", hint: "call of duty", img: '/images/gow.png' },
 ];
 
 const colors = [
@@ -27,6 +27,11 @@ const colors = [
     "204, 142, 252",
 ];
 
+const gameImages = [
+    'images/gow.png'
+]
+
+
 const GameCarousel = () => {
   return (
     <div className="wrapper game-carousel-wrapper">
@@ -39,7 +44,7 @@ const GameCarousel = () => {
           >
             <div className="img">
               <Image
-                src={`https://placehold.co/120x180.png`}
+                src={game.img}
                 alt={game.name}
                 layout="fill"
                 objectFit="cover"

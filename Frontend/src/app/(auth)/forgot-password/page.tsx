@@ -6,20 +6,20 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ForgotPasswordPage() {
-  const [emailInput, setEmailInput] = useState('');
+  const [identifierInput, setIdentifierInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const { requestPasswordReset } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (emailInput.trim()) {
+    if (identifierInput.trim()) {
       setIsLoading(true);
       setMessage('');
       // This function will call the API and handle toasts internally
-      await requestPasswordReset(emailInput.trim());
-      // We show a generic message to prevent exposing which emails are registered
-      setMessage('If an account with that email exists, a password reset link has been sent.');
+      await requestPasswordReset(identifierInput.trim());
+      // We show a generic message to prevent exposing which identifiers are registered
+      setMessage('If an account with that email or gamer tag exists, a password reset link has been sent.');
       setIsLoading(false);
     }
   };
@@ -34,20 +34,20 @@ export default function ForgotPasswordPage() {
                     Forgot Password
                 </h2>
                 <p className="text-center text-sm text-muted-foreground mb-4 px-4" style={{ fontStyle: 'normal' }}>
-                    No worries! Enter your email and we&apos;ll send you a reset link.
+                    No worries! Enter your email or gamer tag and we&apos;ll send you a reset link.
                 </p>
               <div className="input-type">
                 <input
                   className="input-is"
-                  type="email"
+                  type="text"
                   required
-                  placeholder="Your Email Address"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="Your Email or Gamer Tag"
+                  value={identifierInput}
+                  onChange={(e) => setIdentifierInput(e.target.value)}
                   disabled={isLoading || !!message}
                 />
                 <button className="submit" type="submit" disabled={isLoading || !!message}>
-                  {isLoading ? 'Sending...' : 'Send Link'}
+                  {isLoading ? 'Sending...' : 'Send Reset Link'}
                 </button>
               </div>
             </div>

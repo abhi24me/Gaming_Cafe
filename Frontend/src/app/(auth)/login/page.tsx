@@ -8,16 +8,16 @@ import { useAuth } from '@/contexts/AuthContext';
 // The new styling is handled by custom classes in globals.css.
 
 export default function LoginPage() {
-  const [emailInput, setEmailInput] = useState('');
+  const [identifierInput, setIdentifierInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (emailInput.trim() && passwordInput) {
+    if (identifierInput.trim() && passwordInput) {
       setIsLoading(true);
-      await login(emailInput.trim(), passwordInput);
+      await login(identifierInput.trim(), passwordInput);
       setIsLoading(false);
     }
   };
@@ -33,11 +33,11 @@ export default function LoginPage() {
               <div className="input-type">
                 <input
                   className="input-is"
-                  type="email"
+                  type="text"
                   required
-                  placeholder="Email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="Email or Gamer Tag"
+                  value={identifierInput}
+                  onChange={(e) => setIdentifierInput(e.target.value)}
                   disabled={isLoading}
                 />
                 <input

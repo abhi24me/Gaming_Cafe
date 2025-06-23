@@ -25,7 +25,7 @@ async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('TronUserToken') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('welloUserToken') : null;
   
   const defaultHeaders: HeadersInit = {
     ...options.headers,

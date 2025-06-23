@@ -9,8 +9,8 @@ import apiClient, { ApiError } from '@/lib/apiClient';
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
-const GAMER_TAG_KEY = 'TronGamerTag';
-const USER_TOKEN_KEY = 'TronUserToken'; // Changed from isAuthenticated to store the actual token
+const GAMER_TAG_KEY = 'welloGamerTag';
+const USER_TOKEN_KEY = 'welloUserToken'; // Changed from isAuthenticated to store the actual token
 
 interface LoginResponse {
   token: string;
@@ -81,14 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (emailOrGamerTag: string, password?: string) => {
-    // Backend login uses email and password. Signup sets gamerTag for mock.
-    // This function will now primarily be for actual login.
-    // The previous `login(tag: string)` was for mock.
-    if (!password) { // This condition is for the mock scenario, should be removed if only email/password login is used.
-        // This path is likely from the old mock signup flow if `password` is undefined.
-        // For actual API integration, signup will handle its own API call.
-        // Let's assume this is the API login path now.
+  const login = async (identifier: string, password?: string) => {
+    if (!password) {
          toast({ title: "Login Error", description: "Password is required for login.", variant: "destructive" });
         return;
     }
@@ -96,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await apiClient<LoginResponse>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email: emailOrGamerTag, password }),
+        body: JSON.stringify({ identifier, password }),
       });
       storeSession(response.token, response.user.gamerTag);
       router.push('/');
@@ -130,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push('/');
       toast({
         title: "Signup Successful!",
-        description: `Welcome to Tron, ${response.user.gamerTag}! Your adventure begins.`,
+        description: `Welcome to Wello, ${response.user.gamerTag}! Your adventure begins.`,
         className: "bg-green-600 text-white border-green-700",
       });
     } catch (error) {
@@ -182,11 +176,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const requestPasswordReset = async (email: string) => {
+  const requestPasswordReset = async (identifier: string) => {
     try {
       const response = await apiClient<{ message: string }>('/auth/forgot-password', {
         method: 'POST',
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ identifier }),
       });
       toast({
         title: "Check your email",

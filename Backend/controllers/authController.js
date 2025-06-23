@@ -61,15 +61,20 @@ async function getEmailTransporter() {
 
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, password } = req.body;
   try {
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Please provide email and password' });
+    if (!identifier || !password) {
+      return res.status(400).json({ message: 'Please provide an identifier (email or gamer tag) and password' });
     }
-    const user = await User.findOne({ email }).select('+password');
+    // Find user by either email or gamerTag
+    const user = await User.findOne({ 
+      $or: [{ email: identifier }, { gamerTag: identifier }] 
+    }).select('+password');
+    
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
     res.status(200).json({
       token: generateToken(user._id),
       user: {
@@ -127,14 +132,16 @@ exports.signupUser = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: 'Please provide an email address.' });
+  const { identifier } = req.body;
+  if (!identifier) {
+    return res.status(400).json({ message: 'Please provide an email address or gamer tag.' });
   }
 
   try {
-    const user = await User.findOne({ email });
-    const successMessage = 'If an account with that email exists, a password reset link has been sent.';
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { gamerTag: identifier }],
+    });
+    const successMessage = 'If an account with that email or gamer tag exists, a password reset link has been sent.';
 
     if (user) {
         const resetToken = crypto.randomBytes(32).toString('hex');
@@ -151,8 +158,8 @@ exports.forgotPassword = async (req, res) => {
             const transporter = await getEmailTransporter();
             const info = await transporter.sendMail({
                 to: user.email,
-                from: process.env.SMTP_USER || '"TronSphere Support" <support@Tronsphere.example.com>',
-                subject: 'TronSphere Password Reset Request',
+                from: process.env.SMTP_USER || '"WelloSphere Support" <support@wellosphere.example.com>',
+                subject: 'WelloSphere Password Reset Request',
                 text: emailBody
             });
             

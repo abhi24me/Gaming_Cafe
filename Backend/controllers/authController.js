@@ -143,7 +143,8 @@ exports.forgotPassword = async (req, res) => {
 
         await user.save();
 
-        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:9002'}/reset-password?token=${resetToken}`;
+        const frontendBaseUrl = process.env.FRONTEND_URL || (process.env.VERCEL_ENV === 'production' ? 'https://gaming-cafe-frontend.vercel.app' : 'http://localhost:9002');
+        const resetUrl = `${frontendBaseUrl}/reset-password?token=${resetToken}`;
         const emailBody = `You are receiving this email because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste it into your browser to complete the process:\n\n${resetUrl}\n\nThis link will expire in 10 minutes.\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`;
 
         try {

@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
                   disabled={isLoading || !!message}
                 />
                 <button className="submit" type="submit" disabled={isLoading || !!message}>
-                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  {isLoading ? 'Sending...' : 'Send Link'}
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-# **App Name**: TronSphere
+# **App Name**: Tron Gaming
 
 ## Core Features:
 

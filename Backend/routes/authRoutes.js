@@ -1,15 +1,12 @@
+
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
-// @route   POST api/auth/signup
-// @desc    Register a new user
-// @access  Public
+// Public routes for authentication
 router.post('/signup', authController.signupUser);
-
-// @route   POST api/auth/login
-// @desc    Authenticate user & get token
-// @access  Public
-router.post('/login', authController.loginUser);
+router.post('/login', authController.login);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 module.exports = router;

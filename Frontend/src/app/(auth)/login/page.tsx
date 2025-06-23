@@ -57,6 +57,13 @@ export default function LoginPage() {
           </div>
         </div>
       </form>
+      <p className="text-center text-sm text-muted-foreground mt-4">
+        <Link href="/forgot-password" legacyBehavior passHref>
+          <a className="font-semibold text-primary hover:underline">
+            Forgot Password?
+          </a>
+        </Link>
+      </p>
       <p className="text-center text-sm text-muted-foreground mt-6">
         Don&apos;t have an account?{' '}
         <Link href="/signup" legacyBehavior passHref>

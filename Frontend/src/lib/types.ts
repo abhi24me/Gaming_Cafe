@@ -84,6 +84,8 @@ export interface AuthState {
   logout: () => void;
   updateGamerTag: (newTag: string) => void; 
   signup: (gamerTagInput: string, emailInput: string, passwordInput: string, phoneInput?: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<boolean>;
 }
 
 export interface UserProfile { 

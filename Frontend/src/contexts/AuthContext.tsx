@@ -9,8 +9,8 @@ import apiClient, { ApiError } from '@/lib/apiClient';
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
-const GAMER_TAG_KEY = 'TronGamerTag';
-const USER_TOKEN_KEY = 'TronUserToken'; // Changed from isAuthenticated to store the actual token
+const GAMER_TAG_KEY = 'welloGamerTag';
+const USER_TOKEN_KEY = 'welloUserToken'; // Changed from isAuthenticated to store the actual token
 
 interface LoginResponse {
   token: string;
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push('/');
       toast({
         title: "Signup Successful!",
-        description: `Welcome to Tron, ${response.user.gamerTag}! Your adventure begins.`,
+        description: `Welcome to Wello, ${response.user.gamerTag}! Your adventure begins.`,
         className: "bg-green-600 text-white border-green-700",
       });
     } catch (error) {
@@ -181,8 +181,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
     }
   };
+  
+  const requestPasswordReset = async (email: string) => {
+    try {
+      const response = await apiClient<{ message: string }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      toast({
+        title: "Check your email",
+        description: response.message,
+        className: "bg-green-600 text-white border-green-700",
+      });
+    } catch (error) {
+      console.error("Forgot Password API error:", error);
+      const errorMessage = error instanceof ApiError ? error.message : "An error occurred. Please try again.";
+      toast({ title: "Request Failed", description: errorMessage, variant: "destructive" });
+    }
+  };
 
-  const value = { gamerTag, isAuthenticated, login, logout, updateGamerTag, signup, userToken, isLoadingAuth: isLoading };
+  const resetPassword = async (token: string, password: string): Promise<boolean> => {
+    try {
+      await apiClient<{ message: string }>('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, password }),
+      });
+      toast({
+        title: "Password Reset Successful",
+        description: "You can now log in with your new password.",
+        className: "bg-green-600 text-white border-green-700",
+      });
+      return true;
+    } catch (error) {
+      console.error("Reset Password API error:", error);
+      const errorMessage = error instanceof ApiError ? error.message : "An error occurred. Please try again.";
+      toast({ title: "Reset Failed", description: errorMessage, variant: "destructive" });
+      return false;
+    }
+  };
+
+  const value: AuthState = { 
+    gamerTag, 
+    isAuthenticated, 
+    userToken, 
+    isLoadingAuth: isLoading, 
+    login, 
+    logout, 
+    updateGamerTag, 
+    signup, 
+    requestPasswordReset,
+    resetPassword,
+  };
 
   if (isLoading) {
     return null; 

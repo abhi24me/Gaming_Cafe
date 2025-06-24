@@ -22,7 +22,7 @@ router.post('/screens/:screenId/overrides', adminController.addScreenPriceOverri
 router.delete('/screens/:screenId/overrides/:overrideId', adminController.removeScreenPriceOverride);
 // router.put('/screens/:screenId/base-price', adminController.updateScreenBasePrice); // Future
 
-// Promotions Management
-router.post('/send-promo-email', adminController.sendPromotionalEmail);
+// Promotions
+router.post('/send-promo-email', adminController.sendPromoEmail);
 
 module.exports = router;

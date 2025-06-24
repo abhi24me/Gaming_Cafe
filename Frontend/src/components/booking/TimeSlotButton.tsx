@@ -51,6 +51,9 @@ export default function TimeSlotButton({ slot, onClick, isSelected = false }: Ti
       aria-label={`Select time slot ${displayTime}${slot.isAvailable ? '' : ', unavailable'}`}
     >
       <span className="font-medium">{displayTime}</span>
+      {slot.isAvailable && typeof slot.price === 'number' && (
+        <span className="mt-0.5 font-normal text-muted-foreground">₹{slot.price.toFixed(2)}</span>
+      )}
       {!slot.isAvailable && (
           <span className="text-[10px] absolute bottom-1 right-1">(Off)</span>
       )}

@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/contexts/WalletContext';
-import { IndianRupee, WalletCards, UploadCloud, FileImage, XCircle, Loader2 } from 'lucide-react';
+import { IndianRupee, WalletCards, UploadCloud, XCircle, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface TopUpDialogProps {
@@ -29,6 +29,7 @@ const SUGGESTED_AMOUNTS = [200, 500, 1000];
 
 export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) {
   const [amount, setAmount] = useState<string>('');
+  const [bonusInfo, setBonusInfo] = useState<{ bonusAmount: number; bonusPercent: number } | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<'amount' | 'upload'>('amount');
@@ -38,7 +39,31 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Reset state when dialog is closed
+    // Calculate bonus when amount changes
+    const numericAmount = parseFloat(amount);
+    if (!isNaN(numericAmount) && numericAmount > 0) {
+        let percent = 0;
+        if (numericAmount >= 1000) {
+            percent = 12;
+        } else if (numericAmount >= 500) {
+            percent = 8;
+        } else if (numericAmount >= 200) {
+            percent = 5;
+        }
+
+        if (percent > 0) {
+            const bonus = (numericAmount * percent) / 100;
+            setBonusInfo({ bonusAmount: bonus, bonusPercent: percent });
+        } else {
+            setBonusInfo(null);
+        }
+    } else {
+        setBonusInfo(null);
+    }
+  }, [amount]);
+
+
+  useEffect(() => {
     if (!isOpen) {
       setAmount('');
       setReceiptFile(null);
@@ -46,7 +71,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
       setCurrentStep('amount');
       setIsLoading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Clear file input value
+        fileInputRef.current.value = "";
       }
     }
   }, [isOpen]);
@@ -85,7 +110,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
     }
   };
 
-  const handleProceedToUpload = () => {
+  const handleProceedToPayment = () => {
     const topUpAmount = parseFloat(amount);
     if (isNaN(topUpAmount) || topUpAmount <= 0) {
       toast({ title: "Invalid Amount", description: "Please enter a valid positive amount.", variant: "destructive" });
@@ -107,9 +132,8 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
 
     setIsLoading(true);
     try {
-      await requestTopUp(topUpAmount, receiptFile);
-      // requestTopUp shows its own toast on success/failure
-      onOpenChange(false); // Close dialog, reset happens in useEffect
+      await requestTopUp(topUpAmount, receiptFile); // UPI Transaction ID removed
+      onOpenChange(false);
     } catch (error) {
       // Error handling is inside requestTopUp, but catch here if it re-throws or for local state
       console.error("Error in handleSubmitRequest after requestTopUp:", error);
@@ -124,7 +148,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => {
-        if (isLoading) return; // Prevent closing while submitting
+        if (isLoading) return;
         onOpenChange(open);
     }}>
       <AlertDialogContent className="bg-background border-glow-accent p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -141,6 +165,14 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
         {currentStep === 'amount' && (
           <>
             <div className="py-2 sm:py-4 space-y-3 sm:space-y-4">
+              <div className="text-xs text-muted-foreground p-2.5 bg-background/50 rounded-md border border-dashed border-primary/30">
+                <p className="font-semibold text-primary flex items-center"><Sparkles className="h-4 w-4 mr-1.5"/> Bonus Offers:</p>
+                <ul className="list-disc list-inside pl-2 mt-1 space-y-0.5">
+                  <li><span className="font-bold">5% Bonus</span> on top-ups from ₹200 to ₹499.</li>
+                  <li><span className="font-bold">8% Bonus</span> on top-ups from ₹500 to ₹999.</li>
+                  <li><span className="font-bold">12% Bonus</span> on top-ups of ₹1000 or more.</li>
+                </ul>
+              </div>
               <div>
                 <Label htmlFor="topUpAmount" className="text-foreground/90 text-xs sm:text-sm">
                   Top-Up Amount (₹)
@@ -158,6 +190,13 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
                   />
                 </div>
               </div>
+              {bonusInfo && (
+                <div className="text-center text-sm text-green-400 bg-green-500/10 p-2 rounded-md transition-all animate-in fade-in-50">
+                  You get a <span className="font-bold">{bonusInfo.bonusPercent}%</span> bonus!
+                  <br />
+                  Bonus Amount: <span className="font-bold">₹{bonusInfo.bonusAmount.toFixed(2)}</span>. Total Credit: <span className="font-bold">₹{(parseFloat(amount) + bonusInfo.bonusAmount).toFixed(2)}</span>
+                </div>
+              )}
               <div className="space-y-1 sm:space-y-2">
                 <Label className="text-xs text-muted-foreground">Quick Add:</Label>
                 <div className="flex gap-2">
@@ -179,7 +218,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
               <AlertDialogCancel asChild>
                 <Button variant="outline" className="border-muted hover:border-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto">Cancel</Button>
               </AlertDialogCancel>
-              <Button onClick={handleProceedToUpload} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={!amount || parseFloat(amount) <= 0}>
+              <Button onClick={handleProceedToPayment} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={!amount || parseFloat(amount) <= 0}>
                 Proceed to payment
               </Button>
             </AlertDialogFooter>
@@ -190,12 +229,13 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
           <>
             <div className="py-2 sm:py-4 space-y-3 sm:space-y-4">
               <AlertDialogDescription className="text-foreground/80 text-xs sm:text-sm">
-                Scan the QR code with your UPI app to pay <span className="font-semibold text-primary">₹{amount}</span>. Then, upload the payment receipt (screenshot).
+                Scan the QR code with your UPI app to pay <span className="font-semibold text-primary">₹{amount}</span>.
+                Then, upload the payment receipt (screenshot).
               </AlertDialogDescription>
               
               <div className="flex justify-center my-3 sm:my-4">
                 <Image 
-                  src="/images/upi-qr-code.png" 
+                  src="/upi-qr-code.png" 
                   alt="UPI QR Code" 
                   width={180} 
                   height={180}
@@ -254,4 +294,3 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
     </AlertDialog>
   );
 }
-

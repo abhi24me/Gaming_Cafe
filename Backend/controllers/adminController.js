@@ -75,33 +75,61 @@ async function sendUserTopUpStatusNotification(user, request) {
 
   try {
     const transporter = await getEmailTransporter();
-    // The check for a dummy transporter is implicitly handled by the try...catch block,
-    // as the dummy sendMail function returns a rejected promise.
-
     const isApproved = request.status === 'approved';
-    const subject = `Update on your Tron Gaming Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
+    const subject = `Update on your WelloSphere Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
     
-    const textBody = isApproved
-      ? `Hello ${user.gamerTag},\n\nGreat news! Your top-up request for ₹${request.amount.toFixed(2)} has been approved and the amount has been added to your wallet.\n\nHappy Gaming!\nThe Tron Gaming Team`
-      : `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe Tron Gaming Team`;
+    const topUpAmount = Number(request.amount);
+    let bonusPercentage = 0;
+    if (topUpAmount >= 1000) {
+      bonusPercentage = 0.12;
+    } else if (topUpAmount >= 500) {
+      bonusPercentage = 0.08;
+    } else if (topUpAmount >= 200) {
+      bonusPercentage = 0.05;
+    }
+    
+    const bonusAmount = topUpAmount * bonusPercentage;
+    const totalCreditAmount = topUpAmount + bonusAmount;
+    
+    let textBody;
+    let htmlBody;
 
-    const htmlBody = isApproved
-      ? `
-        <p>Hello ${user.gamerTag},</p>
-        <p>Great news! Your top-up request for <strong>₹${request.amount.toFixed(2)}</strong> has been approved and the amount has been added to your Tron Gaming wallet.</p>
-        <p>Happy Gaming!</p>
-        <p>The Tron Gaming Team</p>
-      `
-      : `
+    if (isApproved) {
+        textBody = `Hello ${user.gamerTag},\n\nGreat news! Your top-up request for ₹${topUpAmount.toFixed(2)} has been approved.`;
+        if (bonusAmount > 0) {
+            textBody += ` You've received a bonus of ₹${bonusAmount.toFixed(2)}. A total of ₹${totalCreditAmount.toFixed(2)} has been added to your wallet.`;
+        } else {
+            textBody += ` The amount has been added to your wallet.`;
+        }
+        textBody += `\n\nHappy Gaming!\nThe WelloSphere Team`;
+        
+        htmlBody = `
+            <p>Hello ${user.gamerTag},</p>
+            <p>Great news! Your top-up request for <strong>₹${topUpAmount.toFixed(2)}</strong> has been approved.</p>
+        `;
+        if (bonusAmount > 0) {
+            htmlBody += `<p>For this top-up, you've received a special bonus of <strong>₹${bonusAmount.toFixed(2)}</strong>!</p>
+            <p>A total of <strong>₹${totalCreditAmount.toFixed(2)}</strong> has been added to your WelloSphere wallet.</p>`;
+        } else {
+            htmlBody += `<p>The amount has been added to your WelloSphere wallet.</p>`;
+        }
+        htmlBody += `
+            <p>Happy Gaming!</p>
+            <p>The WelloSphere Team</p>
+        `;
+    } else { // Rejection email
+      textBody = `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe WelloSphere Team`;
+      htmlBody = `
         <p>Hello ${user.gamerTag},</p>
         <p>We have an update on your top-up request for <strong>₹${request.amount.toFixed(2)}</strong>. Unfortunately, it has been rejected.</p>
         <p><strong>Reason:</strong> ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}</p>
         <p>Regards,</p>
-        <p>The Tron Gaming Team</p>
+        <p>The WelloSphere Team</p>
       `;
+    }
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"Tron Gaming Notifications" <noreply@Tron Gaming.example.com>',
+      from: process.env.SMTP_USER || '"WelloSphere Notifications" <noreply@wellosphere.example.com>',
       to: user.email,
       subject: subject,
       text: textBody,
@@ -115,7 +143,6 @@ async function sendUserTopUpStatusNotification(user, request) {
     }
   } catch (error) {
     console.error(`Error sending user status notification email for request ${request._id}:`, error.message);
-    // Do not fail the main request if email notification fails
   }
 }
 
@@ -216,28 +243,59 @@ exports.approveTopUpRequest = async (req, res) => {
       await session.abortTransaction(); session.endSession();
       return res.status(400).json({ message: `Request already ${topUpRequest.status}.` });
     }
+
+    // --- Bonus Calculation (Robust) ---
+    const topUpAmount = Number(topUpRequest.amount);
+    let bonusPercentage = 0;
+    if (topUpAmount >= 1000) {
+      bonusPercentage = 0.12;
+    } else if (topUpAmount >= 500) {
+      bonusPercentage = 0.08;
+    } else if (topUpAmount >= 200) {
+      bonusPercentage = 0.05;
+    }
+    const bonusAmount = topUpAmount * bonusPercentage;
+    const totalCreditAmount = topUpAmount + bonusAmount;
+    // --- End Bonus Calculation ---
+
     userToCredit = await User.findById(topUpRequest.user).session(session);
     if (!userToCredit) {
       await session.abortTransaction(); session.endSession();
       return res.status(404).json({ message: 'User associated with the request not found.' });
     }
-    const walletBalanceBefore = userToCredit.walletBalance;
+    const walletBalanceBefore = Number(userToCredit.walletBalance);
     const loyaltyPointsBalanceBefore = userToCredit.loyaltyPoints;
-    userToCredit.walletBalance += topUpRequest.amount;
+    
+    // Update wallet balance using robust method
+    const newWalletBalance = walletBalanceBefore + totalCreditAmount;
+    userToCredit.walletBalance = Math.round(newWalletBalance * 100) / 100; // Round to 2 decimal places
+    
     await userToCredit.save({ session });
+
+    const transactionDescription = `Wallet top-up approved (₹${topUpAmount.toFixed(2)})${bonusAmount > 0 ? ` + ₹${bonusAmount.toFixed(2)} bonus` : ''}. Request ID: ${topUpRequest._id.toString().slice(-6)}`;
+
     const newTransaction = new Transaction({
-      user: userToCredit._id, type: 'top-up', amount: topUpRequest.amount,
-      description: `Wallet top-up approved (Request ID: ${topUpRequest._id.toString().slice(-6)})`,
-      relatedTopUpRequest: topUpRequest._id, walletBalanceBefore, walletBalanceAfter: userToCredit.walletBalance,
-      loyaltyPointsChange: 0, loyaltyPointsBalanceBefore, loyaltyPointsBalanceAfter: userToCredit.loyaltyPoints,
-      performedBy: adminId, timestamp: new Date()
+      user: userToCredit._id,
+      type: 'top-up',
+      amount: Math.round(totalCreditAmount * 100) / 100,
+      description: transactionDescription,
+      relatedTopUpRequest: topUpRequest._id,
+      walletBalanceBefore,
+      walletBalanceAfter: userToCredit.walletBalance,
+      loyaltyPointsChange: 0,
+      loyaltyPointsBalanceBefore,
+      loyaltyPointsBalanceAfter: userToCredit.loyaltyPoints,
+      performedBy: adminId,
+      timestamp: new Date()
     });
     await newTransaction.save({ session });
+
     topUpRequest.status = 'approved';
     topUpRequest.reviewedBy = adminId;
     topUpRequest.reviewedAt = new Date();
     topUpRequest.relatedTransaction = newTransaction._id;
     await topUpRequest.save({ session });
+    
     await session.commitTransaction();
     session.endSession();
 
@@ -255,6 +313,7 @@ exports.approveTopUpRequest = async (req, res) => {
     res.status(500).json({ message: 'Server error while approving request.' });
   }
 };
+
 
 exports.rejectTopUpRequest = async (req, res) => {
   const { requestId } = req.params;
@@ -294,61 +353,6 @@ exports.rejectTopUpRequest = async (req, res) => {
   } catch (error) {
     console.error('Reject TopUp Request Error:', error);
     res.status(500).json({ message: 'Server error while rejecting request.' });
-  }
-};
-
-exports.sendPromotionalEmail = async (req, res) => {
-  const { subject, htmlBody } = req.body;
-  const adminUsername = req.admin.username;
-
-  if (!subject || !htmlBody) {
-    return res.status(400).json({ message: 'Email subject and body are required.' });
-  }
-
-  try {
-    const users = await User.find({ email: { $exists: true, $ne: null } }).select('email');
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'No users with emails found to send promotions to.' });
-    }
-
-    const emails = users.map(user => user.email);
-    // Simple conversion from HTML to text for the text part of the email
-    const textBody = htmlBody.replace(/<[^>]*>?/gm, ''); 
-
-    const transporter = await getEmailTransporter();
-    
-    // // Using BCC is more efficient and protects user privacy
-    // const mailOptions = {
-    //   from: process.env.SMTP_USER || `"Tron Gaming Offers" <offers@Tron Gaming.example.com>`,
-    //   to: 'amalkuniyilparambath@gmail.com', // Send a copy to the admin account for record-keeping
-    //   subject: subject,
-    //   text: textBody,
-    //   html: htmlBody,
-    // };
-
-    const mailOptions = {
-      from: process.env.SMTP_USER || '"Tron Gaming Notifications" <noreply@Tron Gaming.example.com>',
-      to: emails,
-      bcc: 'amalsreechaithanya@gmail.com',
-      subject: subject,
-      text: textBody,
-      html: htmlBody,
-    };
-
-    console.log('emails',emails)
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Promotional email sent by ${adminUsername} with messageId: ${info.messageId}`);
-     if (nodemailer.getTestMessageUrl(info)) {
-      console.log("Preview URL (Ethereal): %s", nodemailer.getTestMessageUrl(info));
-    }
-
-
-    res.status(200).json({ message: `Promotional email sent successfully to ${emails.length} users.` });
-
-  } catch (error) {
-    console.error('Error sending promotional email:', error);
-    res.status(500).json({ message: 'Server error while sending promotional emails.' });
   }
 };
 
@@ -449,4 +453,43 @@ exports.removeScreenPriceOverride = async (req, res) => {
 // Placeholder for updateScreenBasePrice
 exports.updateScreenBasePrice = async (req, res) => {
   res.status(501).json({ message: 'Not Implemented: Update Screen Base Price' });
+};
+
+exports.sendPromoEmail = async (req, res) => {
+  const { subject, htmlBody } = req.body;
+  const adminId = req.admin.id;
+
+  if (!subject || !htmlBody) {
+    return res.status(400).json({ message: 'Email subject and HTML body are required.' });
+  }
+
+  try {
+    const users = await User.find({ email: { $ne: null, $exists: true } }).select('email');
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'No users with registered emails found.' });
+    }
+
+    const transporter = await getEmailTransporter();
+    const userEmails = users.map(user => user.email);
+
+    const mailOptions = {
+      from: process.env.SMTP_USER || '"WelloSphere Promotions" <promo@wellosphere.example.com>',
+      bcc: userEmails.join(', '),
+      subject: subject,
+      html: htmlBody,
+    };
+
+    let info = await transporter.sendMail(mailOptions);
+
+    console.log(`Promotional email sent by admin ${adminId} to ${userEmails.length} users. Message ID: ${info.messageId}`);
+    if (nodemailer.getTestMessageUrl(info)) {
+      console.log("Preview URL (Ethereal): %s", nodemailer.getTestMessageUrl(info));
+    }
+    
+    res.status(200).json({ message: `Promotional email sent successfully to ${userEmails.length} users.` });
+
+  } catch (error) {
+    console.error(`Error sending promotional email by admin ${adminId}:`, error);
+    res.status(500).json({ message: 'Server error while sending promotional emails.' });
+  }
 };

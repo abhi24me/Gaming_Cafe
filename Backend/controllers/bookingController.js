@@ -4,6 +4,131 @@ const Screen = require('../models/Screen');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
+
+// --- Nodemailer Transporter Setup ---
+let nodemailerTransporter;
+
+async function getEmailTransporter() {
+  if (nodemailerTransporter) {
+    try {
+      await nodemailerTransporter.verify();
+      return nodemailerTransporter;
+    } catch (error) {
+      console.warn("Existing email transporter verification failed, re-initializing.", error.message);
+      nodemailerTransporter = null;
+    }
+  }
+
+  if (
+    process.env.SMTP_HOST &&
+    process.env.SMTP_PORT &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS
+  ) {
+    nodemailerTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT, 10),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+  }
+
+  if (!nodemailerTransporter) {
+    try {
+      let testAccount = await nodemailer.createTestAccount();
+      nodemailerTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: { user: testAccount.user, pass: testAccount.pass },
+      });
+      console.log('Using Ethereal Email transporter for testing. Preview URL for emails will be logged.');
+    } catch (err) {
+      console.error('Failed to create Ethereal test account or transporter:', err.message);
+      nodemailerTransporter = {
+        sendMail: () => Promise.reject(new Error("Email transporter (Ethereal) not configured due to setup failure.")),
+        verify: () => Promise.reject(new Error("Ethereal transporter setup failed verification."))
+      };
+    }
+  }
+  return nodemailerTransporter;
+}
+
+
+// --- Booking Confirmation Email Sender ---
+async function sendBookingConfirmationEmail(user, booking, screen, slot) {
+  if (!user || !user.email) {
+    console.warn(`User or user email not found for booking ${booking._id}. Skipping confirmation email.`);
+    return;
+  }
+
+  try {
+    const transporter = await getEmailTransporter();
+    
+    const startTimeLocal = new Date(slot.startTimeUTC).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
+    const endTimeLocal = new Date(slot.endTimeUTC).toLocaleString('en-IN', { timeStyle: 'short', timeZone: 'Asia/Kolkata' });
+
+    const subject = `Your WelloSphere Booking is Confirmed! (ID: ${booking._id.toString().slice(-6)})`;
+    const locationLink = 'https://maps.app.goo.gl/AfCAmeS7zRcjrKQ9A';
+
+    const textBody = `
+      Hello ${user.gamerTag},
+
+      Your gaming session is confirmed!
+
+      Details:
+      - Screen: ${screen.name}
+      - Date & Time: ${startTimeLocal} - ${endTimeLocal}
+      - Price Paid: ₹${booking.pricePaid.toFixed(2)}
+
+      Our Location:
+      Get ready for your session! You can find us here:
+      ${locationLink}
+
+      We look forward to seeing you. Happy Gaming!
+      The WelloSphere Team
+    `;
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <p>Hello <strong>${user.gamerTag}</strong>,</p>
+        <p>Your gaming session at WelloSphere is confirmed! Get ready for an epic experience.</p>
+        
+        <h3 style="color: #0056b3;">Booking Details:</h3>
+        <ul>
+          <li><strong>Screen:</strong> ${screen.name}</li>
+          <li><strong>Date & Time:</strong> ${startTimeLocal} - ${endTimeLocal}</li>
+          <li><strong>Price Paid:</strong> ₹${booking.pricePaid.toFixed(2)}</li>
+        </ul>
+
+        <h3 style="color: #0056b3;">Our Location:</h3>
+        <p>You can find us at the address below. Click the button for easy navigation!</p>
+        <p><a href="${locationLink}" style="font-size: 16px; color: #ffffff; background-color: #007BFF; padding: 12px 22px; text-decoration: none; border-radius: 5px; display: inline-block;">View on Google Maps</a></p>
+        <br/>
+        <p>We look forward to seeing you.</p>
+        <p>Happy Gaming!<br/><strong>The WelloSphere Team</strong></p>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER || '"WelloSphere Bookings" <bookings@wellosphere.example.com>',
+      to: user.email,
+      subject: subject,
+      text: textBody,
+      html: htmlBody,
+    };
+
+    let info = await transporter.sendMail(mailOptions);
+    console.log(`Booking confirmation email sent to ${user.email}: %s`, info.messageId);
+    if (nodemailer.getTestMessageUrl(info)) {
+      console.log("Preview URL (Ethereal): %s", nodemailer.getTestMessageUrl(info));
+    }
+  } catch (error) {
+    console.error(`Error sending booking confirmation email for booking ${booking._id}:`, error.message);
+    // Do not fail the main request if email notification fails
+  }
+}
 
 // Helper function to calculate slot price based on overrides (consistent with screenController)
 function calculateSlotPrice(slotStartTimeUTC, screen) {
@@ -188,6 +313,9 @@ exports.createBooking = async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+    
+    // Send booking confirmation email
+    await sendBookingConfirmationEmail(user, newBooking, screen, validatedSlot);
 
     res.status(201).json({
       message: 'Booking created successfully!',
@@ -224,4 +352,3 @@ exports.getUserBookings = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching bookings.' });
   }
 };
-

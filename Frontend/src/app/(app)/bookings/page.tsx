@@ -8,8 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWallet } from '@/contexts/WalletContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
-import { BellRing, Award, Loader2, ListX } from 'lucide-react';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'; // CardContent was unused
+import { BellRing, Award, Loader2, ListX, Hourglass } from 'lucide-react';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import apiClient, { ApiError } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,6 +19,7 @@ export default function BookingsPage() {
   const { toast } = useToast();
 
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
+  const [totalPlaytimeHours, setTotalPlaytimeHours] = useState(0);
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function BookingsPage() {
       if (!isAuthenticated) {
         setIsLoadingBookings(false);
         setUserBookings([]);
+        setTotalPlaytimeHours(0);
         return;
       }
       setIsLoadingBookings(true);
@@ -43,6 +45,28 @@ export default function BookingsPage() {
             return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
         });
         setUserBookings(sortedBookings);
+
+        // Calculate total playtime from finished bookings
+        const now = new Date();
+        const totalMilliseconds = sortedBookings
+          .filter(b => {
+            // A booking counts towards playtime if its end time is in the past and it wasn't cancelled.
+            // This considers 'upcoming' or 'active' bookings as completed once they are over.
+            const endTime = new Date(b.endTime);
+            return endTime < now && b.status !== 'cancelled';
+          })
+          .reduce((acc, booking) => {
+            const start = new Date(booking.startTime);
+            const end = new Date(booking.endTime);
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end > start) {
+              return acc + (end.getTime() - start.getTime());
+            }
+            return acc;
+          }, 0);
+        
+        const totalHours = totalMilliseconds / (1000 * 60 * 60);
+        setTotalPlaytimeHours(totalHours);
+
       } catch (error) {
         toast({
           title: "Error Fetching Bookings",
@@ -50,6 +74,7 @@ export default function BookingsPage() {
           variant: "destructive"
         });
         setUserBookings([]);
+        setTotalPlaytimeHours(0);
       } finally {
         setIsLoadingBookings(false);
       }
@@ -120,15 +145,30 @@ export default function BookingsPage() {
           <p className="text-sm sm:text-base md:text-lg text-muted-foreground">Review your past and upcoming sessions.</p>
       </div>
 
-      <Card className="bg-card/80 backdrop-blur-sm border-glow-accent mx-auto w-full max-w-md shrink-0">
-        <CardHeader className="p-3 sm:p-4 flex-row items-center justify-between space-x-2">
-          <div className="flex items-center">
-            <Award className="h-6 w-6 sm:h-7 sm:w-7 text-accent mr-2 sm:mr-3" />
-            <CardTitle className="text-lg sm:text-xl text-accent">Loyalty Points</CardTitle>
-          </div>
-          <p className="text-2xl sm:text-3xl font-bold text-primary">{loyaltyPoints}</p>
-        </CardHeader>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-3xl mx-auto w-full shrink-0">
+        <Card className="bg-card/80 backdrop-blur-sm border-glow-accent">
+          <CardHeader className="p-3 sm:p-4 flex-row items-center justify-between space-x-2">
+            <div className="flex items-center">
+              <Award className="h-6 w-6 sm:h-7 sm:w-7 text-accent mr-2 sm:mr-3" />
+              <CardTitle className="text-lg sm:text-xl text-accent">Loyalty Points</CardTitle>
+            </div>
+            <p className="text-2xl sm:text-3xl font-bold text-primary">{loyaltyPoints}</p>
+          </CardHeader>
+        </Card>
+
+        <Card className="bg-card/80 backdrop-blur-sm border-glow-primary">
+          <CardHeader className="p-3 sm:p-4 flex-row items-center justify-between space-x-2">
+            <div className="flex items-center">
+              <Hourglass className="h-6 w-6 sm:h-7 sm:w-7 text-primary mr-2 sm:mr-3" />
+              <CardTitle className="text-lg sm:text-xl text-primary">Total Playtime</CardTitle>
+            </div>
+            <p className="text-2xl sm:text-3xl font-bold text-accent">
+              {totalPlaytimeHours.toFixed(1)} 
+              <span className="text-lg text-muted-foreground ml-1">hrs</span>
+            </p>
+          </CardHeader>
+        </Card>
+      </div>
 
 
       <div className="flex justify-center mb-4 sm:mb-6 shrink-0">

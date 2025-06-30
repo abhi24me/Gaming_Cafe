@@ -7,7 +7,7 @@ import type { Transaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PlusCircle, ArrowUpCircle, ArrowDownCircle, IndianRupee, History, AlertTriangle, Clock, Ban, CheckCircle } from 'lucide-react';
+import { PlusCircle, ArrowUpCircle, ArrowDownCircle, IndianRupee, History, AlertTriangle, Clock, Ban, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import TopUpDialog from '@/components/wallet/TopUpDialog';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -16,10 +16,13 @@ interface DisplayTransaction extends Transaction {
   formattedDate: string | null;
 }
 
+const ITEMS_PER_PAGE = 5;
+
 export default function WalletTransactions() {
   const { balance, transactions, fetchWalletData } = useWallet(); 
   const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
   const [clientFormattedTransactions, setClientFormattedTransactions] = useState<DisplayTransaction[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setClientFormattedTransactions(
@@ -28,6 +31,7 @@ export default function WalletTransactions() {
         formattedDate: txn.timestamp ? new Date(txn.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) : 'Date N/A'
       }))
     );
+    setCurrentPage(1); // Reset to first page on new data
   }, [transactions]);
   
   const handleDialogClose = (open: boolean) => {
@@ -35,6 +39,20 @@ export default function WalletTransactions() {
     if (!open) {
       fetchWalletData(); 
     }
+  };
+
+  const totalPages = Math.ceil(clientFormattedTransactions.length / ITEMS_PER_PAGE);
+  const paginatedTransactions = clientFormattedTransactions.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
 
 
@@ -91,45 +109,72 @@ export default function WalletTransactions() {
             Transaction History ({clientFormattedTransactions.length})
           </div>
           {clientFormattedTransactions.length > 0 ? (
-            <ScrollArea className="flex-grow pr-2 sm:pr-3">
-              <div className="space-y-2 sm:space-y-3">
-                {clientFormattedTransactions.map((txn: DisplayTransaction) => (
-                  <div
-                    key={txn._id} 
-                    className="flex items-center justify-between p-2 sm:p-3 bg-background/40 rounded-lg border border-border/70 shadow-sm hover:border-primary/50 transition-all"
-                  >
-                    <div className="flex items-center flex-1 min-w-0"> 
-                      {getTransactionIcon(txn)}
-                      <div className="flex-1 min-w-0"> 
-                        <div className="flex items-center">
-                            <p className="font-medium text-foreground text-xs sm:text-base truncate">{txn.description}</p>
-                            {getStatusBadge(txn)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {txn.formattedDate || 'Loading date...'}
-                        </p>
-                         {txn.type === 'topup-request' && txn.status === 'rejected' && txn.adminNotes && (
-                           <p className="text-xs text-destructive mt-0.5">Note: {txn.adminNotes}</p>
-                         )}
-                      </div>
-                    </div>
-                    <span
-                      className={cn(
-                        "text-sm sm:text-lg font-semibold ml-2 whitespace-nowrap",
-                        txn.type === 'booking-fee' ? "text-red-500" :
-                        (txn.type === 'topup-request' && txn.status === 'rejected') ? "text-red-500 line-through" : 
-                        (txn.type === 'topup-request' && txn.status === 'pending') ? "text-yellow-600 dark:text-yellow-400" :
-                        "text-green-500" 
-                      )}
+            <>
+              <ScrollArea className="flex-grow pr-2 sm:pr-3">
+                <div className="space-y-2 sm:space-y-3">
+                  {paginatedTransactions.map((txn: DisplayTransaction) => (
+                    <div
+                      key={txn._id} 
+                      className="flex items-center justify-between p-2 sm:p-3 bg-background/40 rounded-lg border border-border/70 shadow-sm hover:border-primary/50 transition-all"
                     >
-                      {txn.type !== 'booking-fee' && txn.amount >= 0 ? `+₹${txn.amount.toFixed(2)}` :
-                       txn.type === 'booking-fee' ? `-₹${Math.abs(txn.amount).toFixed(2)}` :
-                       `₹${txn.amount.toFixed(2)}`} 
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+                      <div className="flex items-center flex-1 min-w-0"> 
+                        {getTransactionIcon(txn)}
+                        <div className="flex-1 min-w-0"> 
+                          <div className="flex items-center">
+                              <p className="font-medium text-foreground text-xs sm:text-base truncate">{txn.description}</p>
+                              {getStatusBadge(txn)}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {txn.formattedDate || 'Loading date...'}
+                          </p>
+                           {txn.type === 'topup-request' && txn.status === 'rejected' && txn.adminNotes && (
+                             <p className="text-xs text-destructive mt-0.5">Note: {txn.adminNotes}</p>
+                           )}
+                        </div>
+                      </div>
+                      <span
+                        className={cn(
+                          "text-sm sm:text-lg font-semibold ml-2 whitespace-nowrap",
+                          txn.type === 'booking-fee' ? "text-red-500" :
+                          (txn.type === 'topup-request' && txn.status === 'rejected') ? "text-red-500 line-through" : 
+                          (txn.type === 'topup-request' && txn.status === 'pending') ? "text-yellow-600 dark:text-yellow-400" :
+                          "text-green-500" 
+                        )}
+                      >
+                        {txn.type !== 'booking-fee' && txn.amount >= 0 ? `+₹${txn.amount.toFixed(2)}` :
+                         txn.type === 'booking-fee' ? `-₹${Math.abs(txn.amount).toFixed(2)}` :
+                         `₹${txn.amount.toFixed(2)}`} 
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center pt-4 border-t border-border/70 shrink-0 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground mx-4 font-medium">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-center text-muted-foreground text-sm sm:text-lg py-8 sm:py-10">No transactions yet. Make a booking or top up your wallet!</p>
           )}

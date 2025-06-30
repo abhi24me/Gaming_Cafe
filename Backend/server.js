@@ -1,22 +1,25 @@
-
 // Load environment variables
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const path = require('path');
-const seedScreens = require('./seeders/screenSeeder'); // Comment out for Vercel deployment
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const path = require("path");
+const seedScreens = require("./seeders/screenSeeder"); // Comment out for Vercel deployment
 
 const app = express();
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-  'http://192.168.1.13:9002',
-  'http://localhost:9002',
-  'http://localhost:3000',
-  'https://gaming-cafe-admin-frontend.vercel.app',
-  'https://gaming-cafe-frontend.vercel.app'
+  "http://192.168.1.13:9002",
+  "http://localhost:9002",
+  "http://localhost:3000",
+  "https://gaming-cafe-admin-frontend.vercel.app",
+  "https://gaming-cafe-frontend.vercel.app",
+  "https://tron-gaming-frontend-git-user-amalfeature-trongamings-projects.vercel.app",
+  "https://www.trongaming.in",
+  "https://tron-gaming-admin-frontend.vercel.app",
+  "https://tron-gaming-admin-frontend-git-main-trongamings-projects.vercel.app",
 ];
 
 const corsOptions = {
@@ -29,13 +32,12 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 
 app.use(cors(corsOptions));
 // --- End CORS Configuration ---
-
 
 // Middleware
 app.use(express.json());
@@ -46,34 +48,39 @@ app.use(express.urlencoded({ extended: true }));
 // app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-const authRoutes = require('./routes/authRoutes');
-const walletRoutes = require('./routes/walletRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const screenRoutes = require('./routes/screenRoutes');
-const bookingRoutes = require('./routes/bookingRoutes');
+const authRoutes = require("./routes/authRoutes");
+const walletRoutes = require("./routes/walletRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const screenRoutes = require("./routes/screenRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
 
-app.use('/api/auth', authRoutes);
-app.use('/api/wallet', walletRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/screens', screenRoutes);
-app.use('/api/bookings', bookingRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/wallet", walletRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/screens", screenRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 // Simple root handler for Vercel to check if the app is alive
-app.get('/', (req, res) => {
-  res.send('Tron Gaming Backend API is running!');
+app.get("/", (req, res) => {
+  res.send("Tron Gaming Backend API is running!");
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error("Global Error Handler:", err.name, err.message, err.stack);
-  if (err.message && err.message.startsWith('The CORS policy for this site does not allow access')) {
+  if (
+    err.message &&
+    err.message.startsWith(
+      "The CORS policy for this site does not allow access"
+    )
+  ) {
     return res.status(403).json({ message: err.message });
   }
   if (res.headersSent) {
     return next(err);
   }
   res.status(err.status || 500).json({
-     message: err.message || 'An unexpected error occurred on the server.'
+    message: err.message || "An unexpected error occurred on the server.",
   });
 });
 
@@ -89,21 +96,26 @@ if (!MONGODB_URI) {
 
 async function connectMongo() {
   if (conn == null && MONGODB_URI) {
-    console.log('Attempting to connect to MongoDB...');
-    conn = mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-    }).then((mongooseInstance) => {
-      console.log('Successfully connected to MongoDB.');
-      seedScreens(); // Best to run seeding locally or via a separate script for deployment
-      return mongooseInstance;
-    }).catch(err => {
-      console.error('Database connection error:', err);
-      conn = null;
-      throw err;
-    });
+    console.log("Attempting to connect to MongoDB...");
+    conn = mongoose
+      .connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000,
+      })
+      .then((mongooseInstance) => {
+        console.log("Successfully connected to MongoDB.");
+        seedScreens(); // Best to run seeding locally or via a separate script for deployment
+        return mongooseInstance;
+      })
+      .catch((err) => {
+        console.error("Database connection error:", err);
+        conn = null;
+        throw err;
+      });
     await conn;
   } else if (!MONGODB_URI) {
-    console.warn("MongoDB URI not provided, DB connection skipped for this instance.");
+    console.warn(
+      "MongoDB URI not provided, DB connection skipped for this instance."
+    );
   }
   return conn;
 }
@@ -111,14 +123,20 @@ async function connectMongo() {
 const PORT = process.env.PORT || 5000;
 
 // Start server for local development if not in Vercel environment
-if (process.env.VERCEL_ENV !== 'production' && process.env.VERCEL_ENV !== 'preview' && process.env.VERCEL_ENV !== 'development') {
+if (
+  process.env.VERCEL_ENV !== "production" &&
+  process.env.VERCEL_ENV !== "preview" &&
+  process.env.VERCEL_ENV !== "development"
+) {
   (async () => {
     try {
       if (MONGODB_URI) {
         await connectMongo();
       }
       app.listen(PORT, () => {
-        console.log(`Backend server running locally on http://localhost:${PORT}`);
+        console.log(
+          `Backend server running locally on http://localhost:${PORT}`
+        );
       });
     } catch (error) {
       console.error("Failed to start local server:", error);
@@ -135,9 +153,14 @@ module.exports = async (req, res) => {
     }
     app(req, res);
   } catch (error) {
-    console.error("Vercel Handler error (DB connection or app processing):", error);
+    console.error(
+      "Vercel Handler error (DB connection or app processing):",
+      error
+    );
     if (!res.headersSent) {
-      res.status(500).json({ message: "Internal Server Error. Please check server logs." });
+      res
+        .status(500)
+        .json({ message: "Internal Server Error. Please check server logs." });
     }
   }
 };

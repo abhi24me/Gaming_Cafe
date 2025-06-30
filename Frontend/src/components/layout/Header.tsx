@@ -149,11 +149,6 @@ export default function Header() {
                       <UserCircle className="mr-2 h-4 w-4" /> {gamerTag}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setIsEditGamerTagDialogOpen(true)} className="cursor-pointer focus:bg-accent/20">
-                      <Edit3 className="mr-2 h-4 w-4 text-accent" />
-                      <span>Edit Gamer Tag</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={logout} className="cursor-pointer focus:bg-destructive/20 text-destructive focus:text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Logout</span>

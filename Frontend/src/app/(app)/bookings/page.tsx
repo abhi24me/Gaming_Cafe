@@ -169,15 +169,6 @@ export default function BookingsPage() {
           </CardHeader>
         </Card>
       </div>
-
-
-      <div className="flex justify-center mb-4 sm:mb-6 shrink-0">
-        <Button onClick={handleSimulateReminder} variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary btn-glow-primary">
-          <BellRing className="mr-2 h-4 w-4" />
-          Simulate Session Reminder
-        </Button>
-      </div>
-
       <div className="flex-grow overflow-hidden">
         {userBookings && userBookings.length > 0 ? (
           <ScrollArea className="h-full">

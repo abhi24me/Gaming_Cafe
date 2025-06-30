@@ -268,7 +268,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
               
               <div className="flex justify-center my-3 sm:my-4 flex-col items-center gap-2">
                 <Image 
-                  src="/upi-qr-code.png" 
+                  src="/images/upi-qr-code.png" 
                   alt="UPI QR Code" 
                   width={180} 
                   height={180}

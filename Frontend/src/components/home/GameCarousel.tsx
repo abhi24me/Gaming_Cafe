@@ -5,14 +5,14 @@ import Image from 'next/image';
 
 const games = [
     { name: "GTA V", hint: "grand theft auto", img: '/images/gtav.png' },
-    { name: "God of War", hint: "god of war", img: '/images/gow.png'  },
-    { name: "FIFA 2025", hint: "fifa soccer", img: '/images/fifa25.png'  },
-    { name: "Ghost of Tsushima", hint: "ghost of tsushima", img: '/images/gow.png'  },
-    { name: "Tekken", hint: "tekken fighting", img: '/images/gow.png' },
-    { name: "Mortal Kombat", hint: "mortal kombat", img: '/images/gow.png' },
-    { name: "NFS", hint: "need for speed", img: '/images/gow.png' },
-    { name: "Prince of Persia", hint: "prince of persia", img: '/images/gow.png' },
-    { name: "Call of Duty", hint: "call of duty", img: '/images/gow.png' },
+    { name: "M.K 11", hint: "mortal kombat", img: '/images/mortalcombat.png' },
+    { name: "FIFA 25", hint: "fifa soccer", img: '/images/fifa25.png'  },
+    { name: "W.W.E 25", hint: "wwe", img: '/images/wwe.png' },
+    { name: "Tekken 8", hint: "tekken fighting", img: '/images/tekken.png' },
+    { name: "G.O.W", hint: "god of war", img: '/images/gow.png'  },
+    { name: "B.M.W", hint: "black myth wukong", img: '/images/blackmythwukong.png' },
+    { name: "G.O.T", hint: "ghost of tsushima", img: '/images/ghostoftshushima.png'  },
+    { name: "Call of Duty", hint: "call of duty", img: '/images/cod.png' },
 ];
 
 const colors = [

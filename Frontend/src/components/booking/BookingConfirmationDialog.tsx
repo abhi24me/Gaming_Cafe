@@ -3,7 +3,6 @@
 
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -46,9 +45,6 @@ export default function BookingConfirmationDialog({
     if (isOpen && isAuthenticated && authGamerTag) {
       setGamerTagInput(authGamerTag);
     }
-    // if (!isOpen) {
-    //   // Resetting on close might not be desired if user reopens quickly
-    // }
   }, [isOpen, isAuthenticated, authGamerTag]);
 
   useEffect(() => {
@@ -121,18 +117,16 @@ export default function BookingConfirmationDialog({
           <AlertDialogCancel asChild>
             <Button variant="outline" className="border-muted hover:border-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={isSubmitting}>Cancel</Button>
           </AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button onClick={handleConfirm} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={isSubmitting || !gamerTagInput.trim()}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Booking...
-                </>
-              ) : (
-                'Confirm Booking'
-              )}
-            </Button>
-          </AlertDialogAction>
+          <Button onClick={handleConfirm} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={isSubmitting || !gamerTagInput.trim()}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Booking...
+              </>
+            ) : (
+              'Confirm Booking'
+            )}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

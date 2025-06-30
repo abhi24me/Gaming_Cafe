@@ -157,7 +157,7 @@ export default function HomePage() {
         screenId: currentBookingDetails.screen._id,
         date: currentBookingDetails.date.toLocaleDateString('en-CA'), 
         slotId: currentBookingDetails.slot.id,
-        startTimeUTC: currentBookingDetails.slot.startTimeUTC, // Send the exact UTC start time of the slot
+        startTimeUTC: currentBookingDetails.slot.startTimeUTC,
         pricePaid: currentBookingDetails.slot.price,
         gamerTag: gamerTag,
       };
@@ -168,7 +168,6 @@ export default function HomePage() {
           body: JSON.stringify(bookingPayload),
         });
         
-        // Format display time for toast using slot's UTC times
         let displaySlotTime = currentBookingDetails.slot.time; // Fallback
         if (currentBookingDetails.slot.startTimeUTC && currentBookingDetails.slot.endTimeUTC) {
             try {
@@ -179,7 +178,6 @@ export default function HomePage() {
             } catch (e) { /* ignore, use fallback */ }
         }
 
-
         toast({
           title: "Booking Confirmed! 🎉",
           description: `Session for ${gamerTag} on ${currentBookingDetails.screen.name} at ${displaySlotTime} is booked. Cost: ₹${(currentBookingDetails.slot.price || 0).toFixed(2)}.`,
@@ -188,13 +186,17 @@ export default function HomePage() {
 
         await fetchWalletData(); 
 
-        setIsConfirmDialogOpen(false);
-        setBookingStep('screen');
-        setSelectedScreen(null);
-        setSelectedDate(undefined);
-        setSelectedTimeSlot(null);
-        setCurrentBookingDetails({ screen: null, slot: null, date: null });
-        setAvailableSlots([]);
+        // Add a delay to allow the toast to be seen before closing the dialog
+        setTimeout(() => {
+          setIsConfirmDialogOpen(false);
+          setIsSubmittingBooking(false); // Reset this too
+          setBookingStep('screen');
+          setSelectedScreen(null);
+          setSelectedDate(undefined);
+          setSelectedTimeSlot(null);
+          setCurrentBookingDetails({ screen: null, slot: null, date: null });
+          setAvailableSlots([]);
+        }, 1200); // 1.2 second delay
 
       } catch (error) {
         console.error("Booking API error:", error);
@@ -203,8 +205,7 @@ export default function HomePage() {
           description: (error as ApiError).message || "Could not complete your booking. Please try again.",
           variant: "destructive",
         });
-      } finally {
-        setIsSubmittingBooking(false);
+        setIsSubmittingBooking(false); // On error, stop loading to allow retry
       }
     } else {
         toast({

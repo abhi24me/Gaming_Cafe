@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -10,12 +9,14 @@ export default function SignupPage() {
   const [emailInput, setEmailInput] = useState('');
   const [phoneInput, setPhoneInput] = useState(''); // Will store only 10 digits
   const [passwordInput, setPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState(''); // New state
   const [isLoading, setIsLoading] = useState(false);
 
   const [gamerTagError, setGamerTagError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState(''); // New state
 
   const { signup } = useAuth();
 
@@ -25,6 +26,7 @@ export default function SignupPage() {
     setEmailError('');
     setPhoneError('');
     setPasswordError('');
+    setConfirmPasswordError(''); // Reset confirm password error
 
     if (!gamerTagInput.trim()) {
       setGamerTagError('Gamer Tag is required.');
@@ -59,6 +61,11 @@ export default function SignupPage() {
     } else if (passwordInput.length < 8) {
       setPasswordError('Password must be at least 8 characters long.');
       isValid = false;
+    }
+    
+    if (passwordInput !== confirmPasswordInput) {
+        setConfirmPasswordError('Passwords do not match.');
+        isValid = false;
     }
 
     return isValid;
@@ -150,6 +157,23 @@ export default function SignupPage() {
                     aria-invalid={!!passwordError}
                   />
                   {passwordError && <p className="text-xs text-destructive text-left mt-1 px-1">{passwordError}</p>}
+                </div>
+                
+                <div className="w-full">
+                  <input
+                    className="input-is"
+                    type="password"
+                    required
+                    placeholder="Confirm Password"
+                    value={confirmPasswordInput}
+                    onChange={(e) => {
+                      setConfirmPasswordInput(e.target.value);
+                      if (confirmPasswordError) validateForm();
+                    }}
+                    disabled={isLoading}
+                    aria-invalid={!!confirmPasswordError}
+                  />
+                  {confirmPasswordError && <p className="text-xs text-destructive text-left mt-1 px-1">{confirmPasswordError}</p>}
                 </div>
                 
                 <button className="submit" type="submit" disabled={isLoading}>

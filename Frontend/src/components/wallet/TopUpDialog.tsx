@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/contexts/WalletContext';
-import { IndianRupee, WalletCards, UploadCloud, XCircle, Loader2, Sparkles } from 'lucide-react';
+import { IndianRupee, WalletCards, UploadCloud, XCircle, Loader2, Sparkles, Download } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface TopUpDialogProps {
@@ -145,6 +145,39 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
   const handleSuggestionClick = (suggestedAmount: number) => {
     setAmount(suggestedAmount.toString());
   };
+  
+  const handleDownloadQr = async () => {
+    try {
+      const imageUrl = '/images/upi-qr-code.png';
+      const response = await fetch(imageUrl);
+
+      if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'wello-upi-qr-code.png');
+      document.body.appendChild(link);
+      
+      link.click();
+      
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('QR Code download failed:', error);
+      toast({
+        title: "Download Failed",
+        description: "The QR code image file may be missing or could not be loaded. Please try taking a screenshot.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => {
@@ -233,7 +266,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
                 Then, upload the payment receipt (screenshot).
               </AlertDialogDescription>
               
-              <div className="flex justify-center my-3 sm:my-4">
+              <div className="flex justify-center my-3 sm:my-4 flex-col items-center gap-2">
                 <Image 
                   src="/upi-qr-code.png" 
                   alt="UPI QR Code" 
@@ -243,6 +276,10 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
                   data-ai-hint="QR code"
                   priority 
                 />
+                <Button type="button" variant="outline" size="sm" onClick={handleDownloadQr} className="text-xs">
+                  <Download className="mr-2 h-3.5 w-3.5"/>
+                  Download QR
+                </Button>
               </div>
 
               <div>

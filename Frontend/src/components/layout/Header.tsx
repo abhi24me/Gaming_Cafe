@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Gamepad2, Wallet as WalletIcon, PlusCircle, ArrowUpCircle, ArrowDownCircle, ExternalLink, LogOut, UserCircle, Edit3, Award } from 'lucide-react'; // Added Award
+import { Gamepad2, Wallet as WalletIcon, PlusCircle, ArrowUpCircle, ArrowDownCircle, ExternalLink, LogOut, UserCircle, Edit3, Award, Phone } from 'lucide-react'; // Added Phone
 import { useWallet } from '@/contexts/WalletContext';
 import type { Transaction } from '@/lib/types';
 import { NAV_ITEMS } from '@/lib/mockData';
@@ -148,6 +148,13 @@ export default function Header() {
                     <DropdownMenuLabel className="text-primary text-base flex items-center">
                       <UserCircle className="mr-2 h-4 w-4" /> {gamerTag}
                     </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild className="cursor-pointer focus:bg-accent/20">
+                        <a href="https://wa.me/8840112865" target="_blank" rel="noopener noreferrer">
+                            <Phone className="mr-2 h-4 w-4 text-accent" />
+                            <span>Contact Us</span>
+                        </a>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={logout} className="cursor-pointer focus:bg-destructive/20 text-destructive focus:text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />

@@ -70,7 +70,7 @@ async function sendBookingConfirmationEmail(user, booking, screen, slot) {
     const endTimeLocal = new Date(slot.endTimeUTC).toLocaleString('en-IN', { timeStyle: 'short', timeZone: 'Asia/Kolkata' });
 
     const subject = `Your WelloSphere Booking is Confirmed! (ID: ${booking._id.toString().slice(-6)})`;
-    const locationLink = 'https://maps.app.goo.gl/AfCAmeS7zRcjrKQ9A';
+    const locationLink = 'https://maps.app.goo.gl/Cy94pPNHEoKBN5DY8';
 
     const textBody = `
       Hello ${user.gamerTag},

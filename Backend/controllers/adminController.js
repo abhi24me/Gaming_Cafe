@@ -76,7 +76,7 @@ async function sendUserTopUpStatusNotification(user, request) {
   try {
     const transporter = await getEmailTransporter();
     const isApproved = request.status === 'approved';
-    const subject = `Update on your WelloSphere Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
+    const subject = `Update on your Tron Gaming Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
     
     const topUpAmount = Number(request.amount);
     let bonusPercentage = 0;
@@ -101,7 +101,7 @@ async function sendUserTopUpStatusNotification(user, request) {
         } else {
             textBody += ` The amount has been added to your wallet.`;
         }
-        textBody += `\n\nHappy Gaming!\nThe WelloSphere Team`;
+        textBody += `\n\nHappy Gaming!\nThe Tron Gaming Team`;
         
         htmlBody = `
             <p>Hello ${user.gamerTag},</p>
@@ -109,27 +109,27 @@ async function sendUserTopUpStatusNotification(user, request) {
         `;
         if (bonusAmount > 0) {
             htmlBody += `<p>For this top-up, you've received a special bonus of <strong>₹${bonusAmount.toFixed(2)}</strong>!</p>
-            <p>A total of <strong>₹${totalCreditAmount.toFixed(2)}</strong> has been added to your WelloSphere wallet.</p>`;
+            <p>A total of <strong>₹${totalCreditAmount.toFixed(2)}</strong> has been added to your Tron Gaming wallet.</p>`;
         } else {
-            htmlBody += `<p>The amount has been added to your WelloSphere wallet.</p>`;
+            htmlBody += `<p>The amount has been added to your Tron Gaming wallet.</p>`;
         }
         htmlBody += `
             <p>Happy Gaming!</p>
-            <p>The WelloSphere Team</p>
+            <p>The Tron Gaming Team</p>
         `;
     } else { // Rejection email
-      textBody = `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe WelloSphere Team`;
+      textBody = `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe Tron Gaming Team`;
       htmlBody = `
         <p>Hello ${user.gamerTag},</p>
         <p>We have an update on your top-up request for <strong>₹${request.amount.toFixed(2)}</strong>. Unfortunately, it has been rejected.</p>
         <p><strong>Reason:</strong> ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}</p>
         <p>Regards,</p>
-        <p>The WelloSphere Team</p>
+        <p>The Tron Gaming Team</p>
       `;
     }
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"WelloSphere Notifications" <noreply@wellosphere.example.com>',
+      from: process.env.SMTP_USER || '"Tron Gaming Notifications" <noreply@Tron Gaming.example.com>',
       to: user.email,
       subject: subject,
       text: textBody,
@@ -473,7 +473,7 @@ exports.sendPromoEmail = async (req, res) => {
     const userEmails = users.map(user => user.email);
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"WelloSphere Promotions" <promo@wellosphere.example.com>',
+      from: process.env.SMTP_USER || '"Tron Gaming Promotions" <promo@Tron Gaming.example.com>',
       bcc: userEmails.join(', '),
       subject: subject,
       html: htmlBody,

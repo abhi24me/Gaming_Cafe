@@ -160,7 +160,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
       
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'wello-upi-qr-code.png');
+      link.setAttribute('download', 'Tron-upi-qr-code.png');
       document.body.appendChild(link);
       
       link.click();

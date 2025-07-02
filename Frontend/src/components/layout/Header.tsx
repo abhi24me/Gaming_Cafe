@@ -150,7 +150,7 @@ export default function Header() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild className="cursor-pointer focus:bg-accent/20">
-                        <a href="https://wa.me/8840112865" target="_blank" rel="noopener noreferrer">
+                        <a href="https://wa.me/+918840112865" target="_blank" rel="noopener noreferrer">
                             <Phone className="mr-2 h-4 w-4 text-accent" />
                             <span>Contact Us</span>
                         </a>

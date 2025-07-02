@@ -69,7 +69,7 @@ async function sendBookingConfirmationEmail(user, booking, screen, slot) {
     const startTimeLocal = new Date(slot.startTimeUTC).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
     const endTimeLocal = new Date(slot.endTimeUTC).toLocaleString('en-IN', { timeStyle: 'short', timeZone: 'Asia/Kolkata' });
 
-    const subject = `Your WelloSphere Booking is Confirmed! (ID: ${booking._id.toString().slice(-6)})`;
+    const subject = `Your Tron Gaming Booking is Confirmed! (ID: ${booking._id.toString().slice(-6)})`;
     const locationLink = 'https://maps.app.goo.gl/Cy94pPNHEoKBN5DY8';
 
     const textBody = `
@@ -87,13 +87,13 @@ async function sendBookingConfirmationEmail(user, booking, screen, slot) {
       ${locationLink}
 
       We look forward to seeing you. Happy Gaming!
-      The WelloSphere Team
+      The Tron Gaming Team
     `;
 
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; color: #333;">
         <p>Hello <strong>${user.gamerTag}</strong>,</p>
-        <p>Your gaming session at WelloSphere is confirmed! Get ready for an epic experience.</p>
+        <p>Your gaming session at Tron Gaming is confirmed! Get ready for an epic experience.</p>
         
         <h3 style="color: #0056b3;">Booking Details:</h3>
         <ul>
@@ -107,12 +107,12 @@ async function sendBookingConfirmationEmail(user, booking, screen, slot) {
         <p><a href="${locationLink}" style="font-size: 16px; color: #ffffff; background-color: #007BFF; padding: 12px 22px; text-decoration: none; border-radius: 5px; display: inline-block;">View on Google Maps</a></p>
         <br/>
         <p>We look forward to seeing you.</p>
-        <p>Happy Gaming!<br/><strong>The WelloSphere Team</strong></p>
+        <p>Happy Gaming!<br/><strong>The Tron Gaming Team</strong></p>
       </div>
     `;
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"WelloSphere Bookings" <bookings@wellosphere.example.com>',
+      from: process.env.SMTP_USER || '"Tron Gaming Bookings" <bookings@Tron Gaming.example.com>',
       to: user.email,
       subject: subject,
       text: textBody,

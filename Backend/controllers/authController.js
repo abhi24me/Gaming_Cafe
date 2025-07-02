@@ -158,8 +158,8 @@ exports.forgotPassword = async (req, res) => {
             const transporter = await getEmailTransporter();
             const info = await transporter.sendMail({
                 to: user.email,
-                from: process.env.SMTP_USER || '"WelloSphere Support" <support@wellosphere.example.com>',
-                subject: 'WelloSphere Password Reset Request',
+                from: process.env.SMTP_USER || '"Tron Gaming Support" <support@Tron Gaming.example.com>',
+                subject: 'Tron Gaming Password Reset Request',
                 text: emailBody
             });
             

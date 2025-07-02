@@ -34,6 +34,9 @@ export default function AuthLayout({
             <span>WhatsApp</span>
           </a>
         </div>
+        <div className="mt-6 text-xs text-muted-foreground/70 px-4">
+            Disclaimer: Lorem ipsum dolor sit amet, consectetur adipisicing elit. Commodi quia cumque, accusamus tempora corporis a incidunt magni unde, excepturi dignissimos qui inventore suscipit iure? Ut quos eum neque velit deserunt? Lorem ipsum dolor, sit amet consectetur adipisicing elit. Iusto corrupti ut alias unde eaque fugiat velit blanditiis vel odio asperiores, voluptatem molestias, totam sapiente ducimus quas dolores hic cum! Repellat! Lorem ipsum dolor, sit amet consectetur adipisicing elit. Iusto corrupti ut alias unde eaque fugiat velit blanditiis vel odio asperiores, voluptatem molestias, totam sapiente ducimus quas dolores hic cum! Repellat!
+        </div>
       </footer>
     </div>
   );

@@ -13,12 +13,12 @@ const app = express();
 const allowedOrigins = [
   "https://www.trongaming.in",
   "https://tron-gaming-admin-frontend.vercel.app",
+  "https://tron-gaming-frontend-git-user-amalfeature-trongamings-projects.vercel.app",
   "http://192.168.1.13:9002",
   "http://localhost:9002",
   "http://localhost:3000",
   "https://gaming-cafe-admin-frontend.vercel.app",
   "https://gaming-cafe-frontend.vercel.app",
-  "https://tron-gaming-frontend-git-user-amalfeature-trongamings-projects.vercel.app",
   "https://tron-gaming-admin-frontend-git-main-trongamings-projects.vercel.app",
 ];
 

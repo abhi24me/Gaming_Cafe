@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ identifier, password }),
       });
       storeSession(response.token, response.user.gamerTag);
-      router.push('/');
+      router.push('/disclaimer');
       toast({
         title: "Login Successful",
         description: `Welcome back, ${response.user.gamerTag}!`,
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       storeSession(response.token, response.user.gamerTag);
-      router.push('/');
+      router.push('/disclaimer');
       toast({
         title: "Signup Successful!",
         description: `Welcome to Tron, ${response.user.gamerTag}! Your adventure begins.`,

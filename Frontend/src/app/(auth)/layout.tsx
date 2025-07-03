@@ -1,5 +1,5 @@
 
-import { Gamepad2, MapPin, Phone } from 'lucide-react';
+import { Gamepad2, MapPin, Phone, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AuthLayout({
@@ -24,7 +24,7 @@ export default function AuthLayout({
       </main>
       <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border">
         <div>© {new Date().getFullYear()} Tron. All rights reserved.</div>
-        <div className="flex justify-center items-center space-x-6 mt-4">
+        <div className="flex justify-center items-center space-x-4 sm:space-x-6 mt-4">
           <a href="https://maps.app.goo.gl/Cy94pPNHEoKBN5DY8" target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-primary transition-colors">
             <MapPin className="h-4 w-4 mr-2" />
             <span>Location</span>
@@ -33,9 +33,12 @@ export default function AuthLayout({
             <Phone className="h-4 w-4 mr-2" />
             <span>WhatsApp</span>
           </a>
-        </div>
-        <div className="mt-6 text-xs text-muted-foreground/70 px-4">
-            Disclaimer: Lorem ipsum dolor sit amet, consectetur adipisicing elit. Commodi quia cumque, accusamus tempora corporis a incidunt magni unde, excepturi dignissimos qui inventore suscipit iure? Ut quos eum neque velit deserunt? Lorem ipsum dolor, sit amet consectetur adipisicing elit. Iusto corrupti ut alias unde eaque fugiat velit blanditiis vel odio asperiores, voluptatem molestias, totam sapiente ducimus quas dolores hic cum! Repellat! Lorem ipsum dolor, sit amet consectetur adipisicing elit. Iusto corrupti ut alias unde eaque fugiat velit blanditiis vel odio asperiores, voluptatem molestias, totam sapiente ducimus quas dolores hic cum! Repellat!
+          <Link href="/disclaimer" legacyBehavior>
+            <a className="flex items-center hover:text-primary transition-colors">
+              <ShieldAlert className="h-4 w-4 mr-2" />
+              <span>Disclaimer</span>
+            </a>
+          </Link>
         </div>
       </footer>
     </div>

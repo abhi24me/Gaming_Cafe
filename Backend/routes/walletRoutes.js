@@ -4,10 +4,8 @@ const router = express.Router();
 const walletController = require('../controllers/walletController');
 const { protect } = require('../middleware/authMiddleware');
 const multer = require('multer');
-// path and fs are no longer needed here as we are not saving to disk
 
-// Multer configuration for receipt uploads (using memory storage)
-const storage = multer.memoryStorage(); // Store files in memory as Buffers
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
@@ -27,8 +25,8 @@ router.use(protect);
 
 router.get('/transactions', walletController.getWalletTransactions);
 router.get('/details', walletController.getWalletDetails);
-
 router.post('/request-topup', upload.single('receipt'), walletController.requestTopUp);
+router.post('/redeem-points', walletController.redeemLoyaltyPoints); // New route for redeeming points
 
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,19 +7,20 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWallet } from '@/contexts/WalletContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
-import { BellRing, Award, Loader2, ListX, Hourglass } from 'lucide-react';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { BellRing, Award, Loader2, ListX, Hourglass, Gift } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardFooter, CardContent } from '@/components/ui/card';
 import apiClient, { ApiError } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function BookingsPage() {
-  const { loyaltyPoints } = useWallet(); 
+  const { loyaltyPoints, redeemLoyaltyPoints } = useWallet(); 
   const { isAuthenticated, isLoadingAuth } = useAuth();
   const { toast } = useToast();
 
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [totalPlaytimeHours, setTotalPlaytimeHours] = useState(0);
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   useEffect(() => {
     const loadUserBookings = async () => {
@@ -33,7 +33,6 @@ export default function BookingsPage() {
       setIsLoadingBookings(true);
       try {
         const bookingsData = await apiClient<Booking[]>('/bookings');
-        // Sort bookings: upcoming first, then by startTime date descending
         const sortedBookings = bookingsData.sort((a, b) => {
             const aIsUpcoming = new Date(a.startTime) > new Date() && a.status === 'upcoming';
             const bIsUpcoming = new Date(b.startTime) > new Date() && b.status === 'upcoming';
@@ -41,17 +40,13 @@ export default function BookingsPage() {
             if (aIsUpcoming && !bIsUpcoming) return -1;
             if (!aIsUpcoming && bIsUpcoming) return 1;
             
-            // If both are upcoming (or both not), sort by startTime descending
             return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
         });
         setUserBookings(sortedBookings);
 
-        // Calculate total playtime from finished bookings
         const now = new Date();
         const totalMilliseconds = sortedBookings
           .filter(b => {
-            // A booking counts towards playtime if its end time is in the past and it wasn't cancelled.
-            // This considers 'upcoming' or 'active' bookings as completed once they are over.
             const endTime = new Date(b.endTime);
             return endTime < now && b.status !== 'cancelled';
           })
@@ -86,8 +81,14 @@ export default function BookingsPage() {
   }, [isAuthenticated, isLoadingAuth, toast]);
 
 
+  const handleRedeemPoints = async () => {
+    setIsRedeeming(true);
+    await redeemLoyaltyPoints();
+    setIsRedeeming(false);
+  };
+
   const handleSimulateReminder = () => {
-    if (!userBookings || userBookings.length === 0) { // Check length
+    if (!userBookings || userBookings.length === 0) {
         toast({ title: "No Bookings", description: "Cannot simulate reminder without bookings.", variant: "destructive"});
         return;
     }
@@ -146,7 +147,7 @@ export default function BookingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-3xl mx-auto w-full shrink-0">
-        <Card className="bg-card/80 backdrop-blur-sm border-glow-accent">
+        <Card className="bg-card/80 backdrop-blur-sm border-glow-accent flex flex-col">
           <CardHeader className="p-3 sm:p-4 flex-row items-center justify-between space-x-2">
             <div className="flex items-center">
               <Award className="h-6 w-6 sm:h-7 sm:w-7 text-accent mr-2 sm:mr-3" />
@@ -154,6 +155,19 @@ export default function BookingsPage() {
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-primary">{loyaltyPoints}</p>
           </CardHeader>
+          <CardContent className="p-3 sm:p-4 pt-0 text-xs text-center text-muted-foreground flex-grow">
+            Redeem your points for wallet balance (1 Point = ₹1). A minimum of 100 points is required to redeem.
+          </CardContent>
+          <CardFooter className="p-3 sm:p-4 pt-0">
+            <Button 
+                onClick={handleRedeemPoints}
+                disabled={loyaltyPoints < 100 || isRedeeming}
+                className="w-full btn-glow-accent btn-gradient-primary-accent"
+            >
+              {isRedeeming ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <Gift className="h-4 w-4 mr-2"/>}
+              {isRedeeming ? "Redeeming..." : (loyaltyPoints < 100 ? "Need 100+ Points" : `Redeem ${loyaltyPoints} Points`)}
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card className="bg-card/80 backdrop-blur-sm border-glow-primary">
@@ -169,6 +183,10 @@ export default function BookingsPage() {
           </CardHeader>
         </Card>
       </div>
+
+
+ 
+
       <div className="flex-grow overflow-hidden">
         {userBookings && userBookings.length > 0 ? (
           <ScrollArea className="h-full">

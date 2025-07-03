@@ -42,7 +42,7 @@ export interface Transaction {
   _id: string; 
   id?: string; 
   user?: string; 
-  type: 'top-up' | 'booking-fee' | 'refund' | 'topup-request'; 
+  type: 'top-up' | 'booking-fee' | 'refund' | 'topup-request' | 'loyalty-redemption'; 
   amount: number;
   description: string;
   date?: string; 
@@ -72,6 +72,7 @@ export interface WalletState {
   isLoading: boolean;
   fetchWalletData: () => Promise<void>;
   requestTopUp: (amount: number, receiptFile: File) => Promise<void>;
+  redeemLoyaltyPoints: () => Promise<void>;
 }
 
 

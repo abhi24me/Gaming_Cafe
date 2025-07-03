@@ -28,7 +28,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(true);
     try {
-      // Ensure backend has /api/wallet/details endpoint
       const [walletDetails, userTransactions] = await Promise.all([
         apiClient<WalletData>('/wallet/details'), 
         apiClient<Transaction[]>('/wallet/transactions'),
@@ -41,7 +40,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to fetch wallet data:", error);
       const errorMessage = error instanceof ApiError ? error.message : "Could not load wallet information.";
-      if (isAuthenticated) { // Only show toast if user is logged in and expected data
+      if (isAuthenticated) { 
           toast({
             title: "Wallet Error",
             description: errorMessage,
@@ -59,7 +58,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchWalletData, isLoadingAuth]);
 
-  // Updated requestTopUp to handle FormData with receipt
   const requestTopUp = async (amount: number, receiptFile: File) => {
     if (amount <= 0) {
       toast({ title: "Invalid Amount", description: "Top-up amount must be positive.", variant: "destructive" });
@@ -72,28 +70,43 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     const formData = new FormData();
     formData.append('amount', amount.toString());
-    formData.append('paymentMethod', 'UPI'); // Implicitly UPI for this flow
+    formData.append('paymentMethod', 'UPI'); 
     formData.append('receipt', receiptFile);
-    // transactionId is not sent from frontend, backend can generate or payment gateway would provide
 
     try {
-      // apiClient will handle FormData by not setting Content-Type: application/json
-      await apiClient<any>('/wallet/request-topup', { // Backend endpoint for top-up request
+      await apiClient<any>('/wallet/request-topup', {
         method: 'POST',
-        body: formData, // Sending FormData
+        body: formData,
       });
       toast({
         title: "Top-Up Request Submitted",
-        description: `Your request to add ₹${amount.toFixed(2)} with receipt is pending approval.`,
+        description: `Your request to add ₹${amount.toFixed(2)} is pending approval.`,
         className: "bg-primary text-primary-foreground border-primary",
       });
-      // Balance updates after admin approval and re-fetch.
-      // Optionally, you could refetch transactions here if pending requests are shown in user's transaction list
-      // await fetchWalletData(); 
+      await fetchWalletData();
     } catch (error) {
       console.error("Top-up request API error:", error);
       const errorMessage = error instanceof ApiError ? error.message : "Failed to submit top-up request.";
       toast({ title: "Top-Up Failed", description: errorMessage, variant: "destructive" });
+      throw error;
+    }
+  };
+
+  const redeemLoyaltyPoints = async () => {
+    try {
+      const response = await apiClient<{ message: string; redeemedAmount: number }>('/wallet/redeem-points', {
+        method: 'POST',
+      });
+      toast({
+        title: "Points Redeemed!",
+        description: `₹${response.redeemedAmount.toFixed(2)} has been added to your wallet.`,
+        className: "bg-green-600 text-white border-green-700",
+      });
+      await fetchWalletData(); // Refresh wallet data
+    } catch (error) {
+      console.error("Redeem points API error:", error);
+      const errorMessage = error instanceof ApiError ? error.message : "Failed to redeem points.";
+      toast({ title: "Redemption Failed", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -104,6 +117,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     isLoading,
     fetchWalletData,
     requestTopUp,
+    redeemLoyaltyPoints,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

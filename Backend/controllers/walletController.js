@@ -1,3 +1,4 @@
+
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const TopUpRequest = require("../models/TopUpRequest");
@@ -10,11 +11,16 @@ let nodemailerTransporter;
 
 async function getEmailTransporter() {
   if (nodemailerTransporter) {
-    return nodemailerTransporter;
+    try {
+      await nodemailerTransporter.verify();
+      return nodemailerTransporter;
+    } catch (error) {
+       console.warn("Existing email transporter verification failed, re-initializing.", error.message);
+       nodemailerTransporter = null;
+    }
   }
 
   // Check for production email credentials first (using environment variables)
-  // Example for a generic SMTP service:
   if (
     process.env.SMTP_HOST &&
     process.env.SMTP_PORT &&
@@ -23,16 +29,14 @@ async function getEmailTransporter() {
   ) {
     
     nodemailerTransporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: true,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT, 10),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
 
   } else {
     // Fallback to Ethereal Email for development/testing if no production config is set
@@ -53,15 +57,14 @@ async function getEmailTransporter() {
     } catch (err) {
       console.error(
         "Failed to create Ethereal test account or transporter:",
-        err
+        err.message
       );
       // If Ethereal fails, set a dummy transporter to prevent crashes, but log that emails won't be sent.
       nodemailerTransporter = {
-        sendMail: () => Promise.reject("Email transporter not configured"),
+        sendMail: () => Promise.reject(new Error("Email transporter not configured due to setup failure.")),
+        verify: () => Promise.reject(new Error("Ethereal transporter setup failed verification."))
       };
-      console.error(
-        "Email notifications will not be sent as transporter setup failed."
-      );
+       console.error("Email notifications will not be sent as Ethereal transporter setup failed.");
     }
   }
   return nodemailerTransporter;
@@ -71,17 +74,7 @@ async function getEmailTransporter() {
 async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
   try {
     const transporter = await getEmailTransporter();
-    if (
-      transporter.sendMail
-        .toString()
-        .includes("Email transporter not configured")
-    ) {
-      console.warn(
-        "Skipping admin email notification: Transporter not configured."
-      );
-      return;
-    }
-
+    
     const adminsToNotify = await Admin.find({
       email: { $ne: null, $exists: true },
     }).select("email username");
@@ -109,11 +102,11 @@ async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
         <li><strong>Request ID:</strong> ${topUpRequest._id.toString()}</li>
         <li><strong>Payment Method:</strong> ${topUpRequest.paymentMethod}</li>
       </ul>
-      <p>Please review it in the Tron Gaming admin panel.</p>
+      <p>Please review it in the WelloSphere admin panel.</p>
     `;
 
     const mailOptions = {
-      from: process.env.SMTP_USER, // Sender address (can be anything for Ethereal)
+      from: process.env.SMTP_USER || '"WelloSphere Notifications" <noreply@wellosphere.example.com>', // Sender address (use SMTP_USER or a default for Ethereal)
       to: adminEmails.join(", "), // List of receivers
       subject: subject,
       text: textBody,
@@ -130,7 +123,7 @@ async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
       );
     }
   } catch (error) {
-    console.error("Error sending admin notification email:", error);
+    console.error("Error sending admin notification email:", error.message);
     // Do not fail the main request if email notification fails
   }
 }
@@ -261,5 +254,64 @@ exports.requestTopUp = async (req, res) => {
     res
       .status(500)
       .json({ message: "Server error while submitting top-up request." });
+  }
+};
+
+exports.redeemLoyaltyPoints = async (req, res) => {
+  const userId = req.user.id;
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const user = await User.findById(userId).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const pointsToRedeem = user.loyaltyPoints;
+    if (pointsToRedeem < 100) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'A minimum of 100 loyalty points is required to redeem.' });
+    }
+
+    const amountToRedeem = pointsToRedeem; // 1 point = 1 Rupee
+
+    const walletBalanceBefore = user.walletBalance;
+    const loyaltyPointsBalanceBefore = user.loyaltyPoints;
+
+    user.walletBalance += amountToRedeem;
+    user.loyaltyPoints = 0; // Reset points after redemption
+    await user.save({ session });
+    
+    const newTransaction = new Transaction({
+      user: userId,
+      type: 'loyalty-redemption',
+      amount: amountToRedeem,
+      description: `Redeemed ${pointsToRedeem} loyalty points for wallet credit.`,
+      walletBalanceBefore: walletBalanceBefore,
+      walletBalanceAfter: user.walletBalance,
+      loyaltyPointsChange: -pointsToRedeem,
+      loyaltyPointsBalanceBefore: loyaltyPointsBalanceBefore,
+      loyaltyPointsBalanceAfter: user.loyaltyPoints,
+      timestamp: new Date()
+    });
+    await newTransaction.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({ 
+        message: `Successfully redeemed ${pointsToRedeem} points.`,
+        redeemedAmount: amountToRedeem
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Redeem Loyalty Points Error:', error);
+    res.status(500).json({ message: 'Server error while redeeming loyalty points.' });
   }
 };

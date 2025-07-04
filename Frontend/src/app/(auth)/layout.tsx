@@ -29,7 +29,7 @@ export default function AuthLayout({
             <MapPin className="h-4 w-4 mr-2" />
             <span>Location</span>
           </a>
-          <a href="https://wa.me/+918840112865" target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-primary transition-colors">
+          <a href="https://wa.me/+918579049036" target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-primary transition-colors">
             <Phone className="h-4 w-4 mr-2" />
             <span>WhatsApp</span>
           </a>

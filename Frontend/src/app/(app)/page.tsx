@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import BookingConfirmationDialog from '@/components/booking/BookingConfirmationDialog';
 import ScreenSelector from '@/components/booking/ScreenSelector';
 import DateSelector from '@/components/booking/DateSelector';
@@ -43,6 +43,8 @@ export default function HomePage() {
   const { fetchWalletData } = useWallet();
   const { isAuthenticated, isLoadingAuth } = useAuth();
   const router = useRouter();
+
+  const screenSelectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isLoadingAuth && !isAuthenticated) {
@@ -237,6 +239,10 @@ export default function HomePage() {
     setBookingStep('time');
   };
 
+  const handleCarouselClick = () => {
+    screenSelectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   if (isLoadingAuth || !isAuthenticated) {
     return (
       <div className="flex justify-center items-center h-full min-h-[calc(100vh-200px)]">
@@ -308,11 +314,13 @@ export default function HomePage() {
                     <h3 className="text-2xl sm:text-3xl font-bold text-primary">Featured Games</h3>
                     <p className="text-muted-foreground mt-2">A glimpse of our exciting library.</p>
                 </div>
-                <GameCarousel />
+                <GameCarousel onImageClick={handleCarouselClick} />
             </section>
           )}
 
-          {renderStepContent()}
+          <div ref={screenSelectionRef} className="scroll-mt-4">
+            {renderStepContent()}
+          </div>
       </div>
 
       <BookingConfirmationDialog

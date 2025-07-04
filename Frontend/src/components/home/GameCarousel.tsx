@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -31,10 +32,20 @@ const gameImages = [
     'images/gow.png'
 ]
 
+interface GameCarouselProps {
+  onImageClick?: () => void;
+}
 
-const GameCarousel = () => {
+
+
+const GameCarousel = ({ onImageClick }: GameCarouselProps) => {
   return (
-    <div className="wrapper game-carousel-wrapper">
+    <div
+      className="wrapper game-carousel-wrapper"
+      onClick={onImageClick}
+      style={{ cursor: onImageClick ? 'pointer' : 'default' }}
+      title={onImageClick ? 'Scroll to screens' : ''}
+    >
       <div className="inner" style={{ '--quantity': games.length } as React.CSSProperties}>
         {games.map((game, index) => (
           <div

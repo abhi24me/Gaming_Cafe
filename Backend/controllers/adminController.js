@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const Transaction = require('../models/Transaction');
 const Screen = require('../models/Screen');
+const Booking = require('../models/Booking');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
@@ -76,7 +77,7 @@ async function sendUserTopUpStatusNotification(user, request) {
   try {
     const transporter = await getEmailTransporter();
     const isApproved = request.status === 'approved';
-    const subject = `Update on your Tron Gaming Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
+    const subject = `Update on your WelloSphere Top-Up Request: ${isApproved ? 'Approved' : 'Rejected'}`;
     
     const topUpAmount = Number(request.amount);
     let bonusPercentage = 0;
@@ -101,7 +102,7 @@ async function sendUserTopUpStatusNotification(user, request) {
         } else {
             textBody += ` The amount has been added to your wallet.`;
         }
-        textBody += `\n\nHappy Gaming!\nThe Tron Gaming Team`;
+        textBody += `\n\nHappy Gaming!\nThe WelloSphere Team`;
         
         htmlBody = `
             <p>Hello ${user.gamerTag},</p>
@@ -109,27 +110,27 @@ async function sendUserTopUpStatusNotification(user, request) {
         `;
         if (bonusAmount > 0) {
             htmlBody += `<p>For this top-up, you've received a special bonus of <strong>₹${bonusAmount.toFixed(2)}</strong>!</p>
-            <p>A total of <strong>₹${totalCreditAmount.toFixed(2)}</strong> has been added to your Tron Gaming wallet.</p>`;
+            <p>A total of <strong>₹${totalCreditAmount.toFixed(2)}</strong> has been added to your WelloSphere wallet.</p>`;
         } else {
-            htmlBody += `<p>The amount has been added to your Tron Gaming wallet.</p>`;
+            htmlBody += `<p>The amount has been added to your WelloSphere wallet.</p>`;
         }
         htmlBody += `
             <p>Happy Gaming!</p>
-            <p>The Tron Gaming Team</p>
+            <p>The WelloSphere Team</p>
         `;
     } else { // Rejection email
-      textBody = `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe Tron Gaming Team`;
+      textBody = `Hello ${user.gamerTag},\n\nWe have an update on your top-up request for ₹${request.amount.toFixed(2)}. Unfortunately, it has been rejected.\n\nReason: ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}\n\nRegards,\nThe WelloSphere Team`;
       htmlBody = `
         <p>Hello ${user.gamerTag},</p>
         <p>We have an update on your top-up request for <strong>₹${request.amount.toFixed(2)}</strong>. Unfortunately, it has been rejected.</p>
         <p><strong>Reason:</strong> ${request.adminNotes || 'No specific reason provided. Please contact support if you have questions.'}</p>
         <p>Regards,</p>
-        <p>The Tron Gaming Team</p>
+        <p>The WelloSphere Team</p>
       `;
     }
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"Tron Gaming Notifications" <noreply@Tron Gaming.example.com>',
+      from: process.env.SMTP_USER || '"WelloSphere Notifications" <noreply@wellosphere.example.com>',
       to: user.email,
       subject: subject,
       text: textBody,
@@ -356,6 +357,35 @@ exports.rejectTopUpRequest = async (req, res) => {
   }
 };
 
+exports.getBookings = async (req, res) => {
+  const { date } = req.query;
+  try {
+    let query = {};
+
+    if (date) {
+      // Get bookings for a specific day
+      const startOfDay = new Date(date + 'T00:00:00.000Z');
+      const endOfDay = new Date(date + 'T23:59:59.999Z');
+      query.startTime = { $gte: startOfDay, $lte: endOfDay };
+    } else {
+      // Default to upcoming bookings from now
+      query.status = { $in: ['upcoming', 'active'] };
+      query.startTime = { $gte: new Date() };
+    }
+
+    const bookings = await Booking.find(query)
+      .populate('user', 'gamerTag email')
+      .populate('screen', 'name')
+      .sort({ startTime: 'asc' });
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.error('Get Admin Bookings Error:', error);
+    res.status(500).json({ message: 'Server error while fetching bookings.' });
+  }
+};
+
+
 // --- Screen Management by Admin ---
 exports.getScreensForAdmin = async (req, res) => {
   try {
@@ -473,7 +503,7 @@ exports.sendPromoEmail = async (req, res) => {
     const userEmails = users.map(user => user.email);
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"Tron Gaming Promotions" <promo@Tron Gaming.example.com>',
+      from: process.env.SMTP_USER || '"WelloSphere Promotions" <promo@wellosphere.example.com>',
       bcc: userEmails.join(', '),
       subject: subject,
       html: htmlBody,

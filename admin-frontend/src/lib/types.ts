@@ -68,3 +68,22 @@ export interface ScreenWithPricing {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface AdminBookingFromAPI {
+  _id: string;
+  user: {
+    _id: string;
+    gamerTag: string;
+    email: string;
+  };
+  screen: {
+    _id: string;
+    name: string;
+  };
+  startTime: string; // ISO String
+  endTime: string;   // ISO String
+  status: 'upcoming' | 'completed' | 'cancelled' | 'active';
+  pricePaid: number;
+  gamerTagAtBooking?: string;
+  bookedAt: string; // ISO String
+}

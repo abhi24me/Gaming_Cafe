@@ -16,6 +16,9 @@ router.get('/topup-requests/history', adminController.getTopUpRequestHistory);
 router.put('/topup-requests/:requestId/approve', adminController.approveTopUpRequest);
 router.put('/topup-requests/:requestId/reject', adminController.rejectTopUpRequest);
 
+// Bookings Management
+router.get('/bookings', adminController.getBookings);
+
 // Screen & Pricing Management
 router.get('/screens', adminController.getScreensForAdmin);
 router.post('/screens/:screenId/overrides', adminController.addScreenPriceOverride);

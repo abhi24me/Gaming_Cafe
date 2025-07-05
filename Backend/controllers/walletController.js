@@ -102,11 +102,11 @@ async function sendAdminTopUpNotification(topUpRequest, userRequesting) {
         <li><strong>Request ID:</strong> ${topUpRequest._id.toString()}</li>
         <li><strong>Payment Method:</strong> ${topUpRequest.paymentMethod}</li>
       </ul>
-      <p>Please review it in the WelloSphere admin panel.</p>
+      <p>Please review it in the Tron Gaming admin panel.</p>
     `;
 
     const mailOptions = {
-      from: process.env.SMTP_USER || '"WelloSphere Notifications" <noreply@wellosphere.example.com>', // Sender address (use SMTP_USER or a default for Ethereal)
+      from: process.env.SMTP_USER || '"Tron Gaming Notifications" <noreply@Tron Gaming.example.com>', // Sender address (use SMTP_USER or a default for Ethereal)
       to: adminEmails.join(", "), // List of receivers
       subject: subject,
       text: textBody,

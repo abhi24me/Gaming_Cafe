@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode; }
               <Link href="/admin/dashboard" legacyBehavior passHref>
                 <a className="flex items-center text-xl font-bold text-primary tracking-wider hover:opacity-80 transition-opacity">
                   <ShieldCheck className="h-6 w-6 mr-2" />
-                  Wello Admin
+                  Tr
                 </a>
               </Link>
               <nav className="flex items-center space-x-1 md:space-x-2">
@@ -105,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode; }
         {(isAdminAuthenticated || pathname === '/admin/login') ? children : null}
       </main>
       <footer className="py-4 text-center text-muted-foreground text-xs border-t border-border bg-card/80 mt-auto">
-          Wello Admin Portal &copy; {new Date().getFullYear()}
+          Tron Admin Portal &copy; {new Date().getFullYear()}
       </footer>
     </div>
   );

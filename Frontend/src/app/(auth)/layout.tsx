@@ -1,5 +1,5 @@
 
-import { Gamepad2, MapPin, Phone, ShieldAlert } from 'lucide-react';
+import { Gamepad2, MapPin, Phone, ShieldAlert, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AuthLayout({
@@ -33,6 +33,10 @@ export default function AuthLayout({
             <Phone className="h-4 w-4 mr-2" />
             <span>WhatsApp</span>
           </a>
+           <a href="mailto:trongamingps5@gmail.com" className="flex items-center hover:text-primary transition-colors">
+                <Mail className="h-4 w-4 mr-2" />
+                <span>Email</span>
+            </a>
           <Link href="/disclaimer" legacyBehavior>
             <a className="flex items-center hover:text-primary transition-colors">
               <ShieldAlert className="h-4 w-4 mr-2" />

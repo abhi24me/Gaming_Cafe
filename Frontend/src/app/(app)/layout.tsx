@@ -1,7 +1,9 @@
 
+'use client';
+
 import Header from '@/components/layout/Header';
 import { WalletProvider } from '@/contexts/WalletContext';
-import { MapPin, Phone, ShieldAlert } from 'lucide-react';
+import { MapPin, Phone, ShieldAlert, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AppLayout({
@@ -9,7 +11,6 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  console.log('Rendering AppLayout (app routes)');
   return (
     <WalletProvider>
       <div className="min-h-screen flex flex-col bg-background">
@@ -27,6 +28,10 @@ export default function AppLayout({
             <a href="https://wa.me/+918579049036" target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-primary transition-colors">
               <Phone className="h-4 w-4 mr-2" />
               <span>WhatsApp</span>
+            </a>
+             <a href="mailto:trongamingps5@gmail.com" className="flex items-center hover:text-primary transition-colors">
+                <Mail className="h-4 w-4 mr-2" />
+                <span>Email</span>
             </a>
             <Link href="/disclaimer" legacyBehavior>
               <a className="flex items-center hover:text-primary transition-colors">

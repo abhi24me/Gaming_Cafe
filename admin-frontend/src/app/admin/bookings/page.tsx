@@ -164,7 +164,10 @@ export default function AdminBookingsPage() {
                         <div className="font-medium text-foreground truncate max-w-[120px] sm:max-w-[150px]">
                           {booking.user?.gamerTag || 'N/A'}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[150px]">
+                        <div className="text-xs text-muted-foreground sm:hidden">
+                          {booking.screen?.name || 'N/A'}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[150px] hidden sm:block">
                           {booking.user?.email || 'N/A'}
                         </div>
                       </TableCell>

@@ -95,15 +95,17 @@ export default function HomePage() {
         const slotsData = await apiClient<ScreenAvailabilityResponse>(`/screens/${selectedScreen._id}/availability?date=${formattedDate}`);
         
         let processedSlots = slotsData.slots || [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); 
 
+        // Check if the selected date is today to disable past slots
+        const today = new Date();
         if (date.toDateString() === today.toDateString()) {
           const nowClient = new Date(); 
           processedSlots = processedSlots.map(slot => {
-            if (slot.startTimeUTC) {
-              const slotStartTimeClient = new Date(slot.startTimeUTC);
-              if (slotStartTimeClient < nowClient) {
+            // A slot is only unavailable if its end time is in the past.
+            if (slot.endTimeUTC) {
+              const slotEndTimeClient = new Date(slot.endTimeUTC);
+              if (slotEndTimeClient < nowClient) {
+                // Keep the original isAvailable state from backend, but override if past.
                 return { ...slot, isAvailable: false };
               }
             }

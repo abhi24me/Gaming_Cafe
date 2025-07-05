@@ -157,29 +157,24 @@ async function getValidatedSlotDetails(screenId, dateString, slotId, expectedSta
   if (!screen || !screen.isActive) {
     throw new Error('Screen not found or is not active.');
   }
-
-  const targetDate_utc = new Date(dateString + 'T00:00:00.000Z');
   
-  let foundSlot = null;
   const now_utc = new Date();
 
   // Reconstruct the slot that matches slotId to validate its properties
-  const parts = slotId.split('-'); // e.g., "slot-YYYY-MM-DD-HH-MM"
+  const parts = slotId.split('-'); // e.g., "slot-YYYY-MM-DD-HH"
   if (parts.length < 4 || parts[0] !== 'slot') {
     throw new Error('Invalid slotId format.');
   }
-  const hour = parseInt(parts[parts.length-2]); // Assumes HH format (e.g., from slot-${date}-${hour}-30)
-  const minute = parseInt(parts[parts.length-1]); // Assumes MM format
+  const istHour = parseInt(parts[parts.length - 1]); // The last part is now the IST hour
 
-  if (isNaN(hour) || isNaN(minute)) {
-      throw new Error('Invalid hour or minute in slotId.');
+  if (isNaN(istHour)) {
+      throw new Error('Invalid hour in slotId.');
   }
-
-  const slotStartTime_utc = new Date(targetDate_utc);
-  slotStartTime_utc.setUTCHours(hour, minute, 0, 0); // Slot starts at HH:MM UTC
-
+  
+  // Reconstruct the slot start and end time based on IST hour, just like in the generation logic.
+  const slotStartTime_utc = new Date(`${dateString}T${String(istHour).padStart(2, '0')}:00:00.000+05:30`);
   const slotEndTime_utc = new Date(slotStartTime_utc);
-  slotEndTime_utc.setUTCHours(slotStartTime_utc.getUTCHours() + 1, slotStartTime_utc.getUTCMinutes(), 0, 0); // Slot is 1 hour long
+  slotEndTime_utc.setHours(slotEndTime_utc.getHours() + 1);
 
   // Basic validation against client-provided details
   if (slotStartTime_utc.toISOString() !== expectedStartTimeUTC) {
@@ -211,8 +206,8 @@ async function getValidatedSlotDetails(screenId, dateString, slotId, expectedSta
     throw new Error('The selected time slot is no longer available. Please choose another.');
   }
   
-  foundSlot = {
-    id: slotId, // Use the provided slotId
+  const foundSlot = {
+    id: slotId,
     startTimeUTC: slotStartTime_utc,
     endTimeUTC: slotEndTime_utc,
     price: serverCalculatedPrice,
@@ -291,16 +286,16 @@ exports.createBooking = async (req, res) => {
     await newBooking.save({ session });
     
     // Using validatedSlot.startTimeUTC for formatting transaction description
-    const transactionTimeDisplay = validatedSlot.startTimeUTC.toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC'
+    const transactionTimeDisplay = validatedSlot.startTimeUTC.toLocaleString('en-IN', {
+        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata'
     });
-    const transactionDateDisplay = new Date(dateString + 'T00:00:00.000Z').toLocaleDateString('en-CA');
+    const transactionDateDisplay = new Date(validatedSlot.startTimeUTC).toLocaleDateString('en-CA', {timeZone: 'Asia/Kolkata'});
 
     const newTransaction = new Transaction({
       user: userId,
       type: 'booking-fee',
       amount: -validatedSlot.price, 
-      description: `Booking: ${screen.name} on ${transactionDateDisplay} at ${transactionTimeDisplay} (UTC)`,
+      description: `Booking: ${screen.name} on ${transactionDateDisplay} at ${transactionTimeDisplay}`,
       relatedBooking: newBooking._id,
       walletBalanceBefore: walletBalanceBefore,
       walletBalanceAfter: user.walletBalance,

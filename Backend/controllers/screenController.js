@@ -57,26 +57,25 @@ exports.getScreenAvailability = async (req, res) => {
       return res.status(404).json({ message: 'Screen not found or is not active.' });
     }
 
-    const targetDate_utc = new Date(date + 'T00:00:00.000Z'); 
-
-    const nextDateForQuery_utc = new Date(targetDate_utc);
-    nextDateForQuery_utc.setUTCDate(targetDate_utc.getUTCDate() + 1);
+    // Define the IST day in terms of UTC
+    const startOfDayInIST = new Date(`${date}T00:00:00.000+05:30`);
+    const endOfDayInIST = new Date(startOfDayInIST);
+    endOfDayInIST.setDate(endOfDayInIST.getDate() + 1);
 
     const existingBookings = await Booking.find({
       screen: screenId,
       status: { $in: ['upcoming', 'active'] },
-      startTime: { $gte: targetDate_utc, $lt: nextDateForQuery_utc }
+      startTime: { $gte: startOfDayInIST, $lt: endOfDayInIST }
     }).select('startTime endTime');
 
     const slots = [];
     const now_utc = new Date();
 
-    for (let hour = 0; hour < 24; hour++) {
-      const slotStartTime_utc = new Date(targetDate_utc);
-      slotStartTime_utc.setUTCHours(hour, 30, 0, 0); // Slot starts at HH:30 UTC
-
-      const slotEndTime_utc = new Date(targetDate_utc);
-      slotEndTime_utc.setUTCHours(hour + 1, 30, 0, 0); // Slot ends at (HH+1):30 UTC
+    // Loop through hours of the day in IST (0 to 23)
+    for (let istHour = 0; istHour < 24; istHour++) {
+      const slotStartTime_utc = new Date(`${date}T${String(istHour).padStart(2, '0')}:00:00.000+05:30`);
+      const slotEndTime_utc = new Date(slotStartTime_utc);
+      slotEndTime_utc.setHours(slotEndTime_utc.getHours() + 1);
 
       const isSlotInThePast = slotEndTime_utc <= now_utc;
       
@@ -100,7 +99,7 @@ exports.getScreenAvailability = async (req, res) => {
       const timeStringForDebug = `${startHourDisplay} - ${endHourDisplay}`;
 
       slots.push({
-        id: `slot-${date}-${hour}-30`, // Make ID unique for half-hour slots
+        id: `slot-${date}-${istHour}`, // ID is based on IST hour now
         time: timeStringForDebug, 
         startTimeUTC: slotStartTime_utc.toISOString(), 
         endTimeUTC: slotEndTime_utc.toISOString(),   

@@ -112,8 +112,8 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
 
   const handleProceedToPayment = () => {
     const topUpAmount = parseFloat(amount);
-    if (isNaN(topUpAmount) || topUpAmount <= 0) {
-      toast({ title: "Invalid Amount", description: "Please enter a valid positive amount.", variant: "destructive" });
+    if (isNaN(topUpAmount) || topUpAmount < 200) {
+      toast({ title: "Invalid Amount", description: "Minimum top-up amount is ₹200.", variant: "destructive" });
       return;
     }
     setCurrentStep('upload');
@@ -121,8 +121,8 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
 
   const handleSubmitRequest = async () => {
     const topUpAmount = parseFloat(amount);
-    if (isNaN(topUpAmount) || topUpAmount <= 0) {
-      toast({ title: "Invalid Amount", description: "Please ensure the amount is valid.", variant: "destructive" });
+    if (isNaN(topUpAmount) || topUpAmount < 200) {
+      toast({ title: "Invalid Amount", description: "Top-up amount must be at least ₹200.", variant: "destructive" });
       return;
     }
     if (!receiptFile) {
@@ -208,7 +208,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
               </div>
               <div>
                 <Label htmlFor="topUpAmount" className="text-foreground/90 text-xs sm:text-sm">
-                  Top-Up Amount (₹)
+                  Top-Up Amount (Minimum ₹200)
                 </Label>
                 <div className="relative mt-1">
                   <IndianRupee className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
@@ -219,7 +219,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="e.g., 500"
                     className="bg-card border-primary focus:ring-primary pl-8 sm:pl-10 text-base"
-                    min="1"
+                    min="200"
                   />
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function TopUpDialog({ isOpen, onOpenChange }: TopUpDialogProps) 
               <AlertDialogCancel asChild>
                 <Button variant="outline" className="border-muted hover:border-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto">Cancel</Button>
               </AlertDialogCancel>
-              <Button onClick={handleProceedToPayment} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={!amount || parseFloat(amount) <= 0}>
+              <Button onClick={handleProceedToPayment} className="btn-gradient-primary-accent text-primary-foreground btn-glow-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 h-auto" disabled={!amount || parseFloat(amount) < 200}>
                 Proceed to payment
               </Button>
             </AlertDialogFooter>

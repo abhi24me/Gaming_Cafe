@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarClock, Loader2, AlertTriangle, RefreshCw, Calendar, FilterX } from 'lucide-react';
+import { CalendarClock, Loader2, AlertTriangle, RefreshCw, Calendar, FilterX, DollarSign } from 'lucide-react';
 import type { AdminBookingFromAPI } from '@/lib/types';
 import apiClient, { ApiError } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ export default function AdminBookingsPage() {
   const { toast } = useToast();
 
   const [bookings, setBookings] = useState<AdminBookingFromAPI[]>([]);
+  const [totalPrice, setTotalPrice] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -56,6 +57,15 @@ export default function AdminBookingsPage() {
     }
   }, [isLoadingAdminAuth, isAdminAuthenticated, fetchBookings]);
   
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      const total = bookings.reduce((acc, booking) => acc + booking.pricePaid, 0);
+      setTotalPrice(total);
+    } else {
+      setTotalPrice(0);
+    }
+  }, [bookings]);
+
   const handleClearFilter = () => {
     setSelectedDate('');
   };
@@ -102,7 +112,15 @@ export default function AdminBookingsPage() {
         <CardHeader className="p-4 md:p-5 border-b flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center self-start sm:self-center">
             <CalendarClock className="h-6 w-6 md:h-7 md:w-7 text-primary mr-2 md:mr-3" />
-            <CardTitle className="text-lg md:text-xl text-primary-foreground">Scheduled Sessions</CardTitle>
+            <div className="flex flex-col">
+              <CardTitle className="text-lg md:text-xl text-primary-foreground">Scheduled Sessions</CardTitle>
+              {!isLoading && bookings.length > 0 && (
+                <div className="text-xs text-green-400 font-semibold mt-1 flex items-center">
+                  <DollarSign className="h-3 w-3 mr-1" />
+                  <span>Total Revenue: ₹{totalPrice.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
              <div className="flex items-center gap-2">

@@ -16,7 +16,7 @@ import type { Screen, TimeSlot } from '@/lib/types';
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 
 interface BookingConfirmationDialogProps {
   isOpen: boolean;
@@ -95,7 +95,14 @@ export default function BookingConfirmationDialog({
             <li><span className="font-semibold">Time:</span> {displaySlotTime}</li>
             {slot.price !== undefined && <li><span className="font-semibold">Price:</span> ₹{slot.price} (deducted from wallet)</li>}
           </ul>
-          <AlertDialogDescription className="text-foreground/80 text-xs sm:text-sm">
+          <div className="flex items-start text-left text-xs text-muted-foreground p-3 mt-2 bg-background/30 rounded-lg border border-dashed border-border/50">
+            <Info className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-primary/80" />
+            <div>
+                <p className="font-semibold text-foreground/90">Note on Additional Consoles:</p>
+                <p>The price shown is for a single console. An extra ₹50 per hour will be charged at the venue for using a second console on the same screen.</p>
+            </div>
+          </div>
+          <AlertDialogDescription className="text-foreground/80 text-xs sm:text-sm pt-2">
             {isGamerTagEditable ? "Please confirm your Gamer Tag to proceed." : "Your Gamer Tag is confirmed."}
           </AlertDialogDescription>
         </AlertDialogHeader>

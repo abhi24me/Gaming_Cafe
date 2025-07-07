@@ -35,6 +35,7 @@ export interface Booking {
   bookedAt: string; 
   status: 'upcoming' | 'completed' | 'cancelled' | 'active'; 
   pricePaid: number;
+  withSecondConsole?: boolean;
 }
 
 

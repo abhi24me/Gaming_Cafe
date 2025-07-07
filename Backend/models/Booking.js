@@ -45,47 +45,31 @@ const bookingSchema = new mongoose.Schema({
   },
   bookedAt: {
     type: Date,
+    default: Date.now,
+  },
+  withSecondConsole: {
+    type: Boolean,
+    default: false,
+  },
+  createdAt: {
+    type: Date,
     default: Date.now
   },
-  // Optional: notes or special requests for the booking
-  // notes: {
-  //   type: String,
-  //   trim: true
-  // },
   updatedAt: {
     type: Date,
     default: Date.now
   }
 });
 
+// Index to quickly find bookings by user or by screen and time
+bookingSchema.index({ user: 1, startTime: -1 });
+bookingSchema.index({ screen: 1, startTime: 1, endTime: 1 });
+
 // Middleware to update `updatedAt` field on save
 bookingSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
-
-// Example of an index to improve query performance for finding bookings by user or screen
-bookingSchema.index({ user: 1, startTime: -1 }); // Get user's bookings, newest first
-bookingSchema.index({ screen: 1, startTime: 1, endTime: 1 }); // Check for screen availability
-
-// Static method to check for overlapping bookings (example)
-// This logic would typically be more complex and might reside in a service or controller
-bookingSchema.statics.findOverlappingBookings = function(screenId, startTime, endTime, excludeBookingId = null) {
-  const query = {
-    screen: screenId,
-    status: { $in: ['upcoming', 'active'] }, // Only check against active or upcoming bookings
-    $or: [
-      { startTime: { $lt: endTime, $gte: startTime } }, // New booking starts within an existing one
-      { endTime: { $gt: startTime, $lte: endTime } },   // New booking ends within an existing one
-      { startTime: { $lte: startTime }, endTime: { $gte: endTime } } // New booking encapsulates an existing one
-    ]
-  };
-  if (excludeBookingId) {
-    query._id = { $ne: excludeBookingId }; // Useful when updating an existing booking
-  }
-  return this.find(query);
-};
-
 
 const Booking = mongoose.model('Booking', bookingSchema);
 

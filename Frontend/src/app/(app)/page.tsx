@@ -154,7 +154,7 @@ export default function HomePage() {
     }
   };
   
-  const handleBookingConfirm = async (gamerTag: string) => {
+  const handleBookingConfirm = async (gamerTag: string, addSecondConsole: boolean) => {
     if (currentBookingDetails.screen?._id && currentBookingDetails.slot?.id && currentBookingDetails.slot?.startTimeUTC && currentBookingDetails.date && currentBookingDetails.slot.price !== undefined) {
       setIsSubmittingBooking(true);
       const bookingPayload = {
@@ -164,10 +164,11 @@ export default function HomePage() {
         startTimeUTC: currentBookingDetails.slot.startTimeUTC,
         pricePaid: currentBookingDetails.slot.price,
         gamerTag: gamerTag,
+        addSecondConsole: addSecondConsole,
       };
 
       try {
-        await apiClient<BookingCreationResponse>('/bookings', {
+        const response = await apiClient<BookingCreationResponse>('/bookings', {
           method: 'POST',
           body: JSON.stringify(bookingPayload),
         });
@@ -184,7 +185,7 @@ export default function HomePage() {
 
         toast({
           title: "Booking Confirmed! 🎉",
-          description: `Session for ${gamerTag} on ${currentBookingDetails.screen.name} at ${displaySlotTime} is booked. Cost: ₹${(currentBookingDetails.slot.price || 0).toFixed(2)}.`,
+          description: `Session for ${gamerTag} on ${currentBookingDetails.screen.name} at ${displaySlotTime} is booked. Cost: ₹${(response.booking.pricePaid || 0).toFixed(2)}.`,
           className: "bg-green-600 text-white border-green-700",
         });
 

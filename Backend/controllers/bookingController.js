@@ -72,15 +72,30 @@ async function sendBookingConfirmationEmail(user, booking, screen, slot) {
     const subject = `Your Tron Gaming Booking is Confirmed! (ID: ${booking._id.toString().slice(-6)})`;
     const locationLink = 'https://maps.app.goo.gl/Cy94pPNHEoKBN5DY8';
 
-    const textBody = `
-      Hello ${user.gamerTag},
-
-      Your gaming session is confirmed!
-
+    let detailsText = `
       Details:
       - Screen: ${screen.name}
       - Date & Time: ${startTimeLocal} - ${endTimeLocal}
       - Price Paid: ₹${booking.pricePaid.toFixed(2)}
+    `;
+    if (booking.withSecondConsole) {
+        detailsText += '\n      - Extra: Second Console Added';
+    }
+
+    let detailsHtml = `
+      <ul>
+        <li><strong>Screen:</strong> ${screen.name}</li>
+        <li><strong>Date & Time:</strong> ${startTimeLocal} - ${endTimeLocal}</li>
+        <li><strong>Price Paid:</strong> ₹${booking.pricePaid.toFixed(2)}</li>
+        ${booking.withSecondConsole ? '<li><strong>Extra:</strong> Second Console Added</li>' : ''}
+      </ul>
+    `;
+
+    const textBody = `
+      Hello ${user.gamerTag},
+
+      Your gaming session is confirmed!
+      ${detailsText}
 
       Our Location:
       Get ready for your session! You can find us here:
@@ -96,11 +111,7 @@ async function sendBookingConfirmationEmail(user, booking, screen, slot) {
         <p>Your gaming session at Tron Gaming is confirmed! Get ready for an epic experience.</p>
         
         <h3 style="color: #0056b3;">Booking Details:</h3>
-        <ul>
-          <li><strong>Screen:</strong> ${screen.name}</li>
-          <li><strong>Date & Time:</strong> ${startTimeLocal} - ${endTimeLocal}</li>
-          <li><strong>Price Paid:</strong> ₹${booking.pricePaid.toFixed(2)}</li>
-        </ul>
+        ${detailsHtml}
 
         <h3 style="color: #0056b3;">Our Location:</h3>
         <p>You can find us at the address below. Click the button for easy navigation!</p>
@@ -143,7 +154,7 @@ function calculateSlotPrice(slotStartTimeUTC, screen) {
   if (screen.priceOverrides && screen.priceOverrides.length > 0) {
     for (const override of screen.priceOverrides) {
       // Check if the override applies to the slot's day (in IST)
-      if (override.daysOfWeek.includes(slotDayIST)) {
+      if (override.daysOfWeek.includes(slotDayIST)) {    
         const overrideStartTimeUTC = parseInt(override.startTimeUTC.replace(':', ''), 10);
         const overrideEndTimeUTC = parseInt(override.endTimeUTC.replace(':', ''), 10);
 
@@ -249,7 +260,7 @@ async function getValidatedSlotDetails(screenId, dateString, slotId, expectedSta
 // @route   POST /api/bookings
 // @access  Private
 exports.createBooking = async (req, res) => {
-  const { screenId, date: dateString, slotId, startTimeUTC: clientStartTimeUTC, pricePaid, gamerTag } = req.body;
+  const { screenId, date: dateString, slotId, startTimeUTC: clientStartTimeUTC, pricePaid, gamerTag, addSecondConsole } = req.body;
   const userId = req.user.id;
 
   if (!screenId || !dateString || !slotId || !clientStartTimeUTC || pricePaid === undefined || !gamerTag) {
@@ -272,13 +283,17 @@ exports.createBooking = async (req, res) => {
     }
 
     // Validate the slot details sent by the client against server's current state
-    // This will also calculate the correct price based on overrides
     const validatedSlot = await getValidatedSlotDetails(screenId, dateString, slotId, clientStartTimeUTC, numericPricePaid);
-    // validatedSlot contains startTimeUTC, endTimeUTC, price
+    
+    // Calculate final price with optional second console
+    let finalPrice = validatedSlot.price;
+    if (addSecondConsole) {
+        finalPrice += 40;
+    }
 
-    if (user.walletBalance < validatedSlot.price) { // Use validatedSlot.price
+    if (user.walletBalance < finalPrice) {
       await session.abortTransaction(); session.endSession();
-      return res.status(400).json({ message: `Insufficient wallet balance. Cost: ${validatedSlot.price.toFixed(2)}, Balance: ${user.walletBalance.toFixed(2)}` });
+      return res.status(400).json({ message: `Insufficient wallet balance. Cost: ${finalPrice.toFixed(2)}, Balance: ${user.walletBalance.toFixed(2)}` });
     }
 
     const screen = await Screen.findById(screenId).session(session); 
@@ -290,7 +305,7 @@ exports.createBooking = async (req, res) => {
     const walletBalanceBefore = user.walletBalance;
     const loyaltyPointsBefore = user.loyaltyPoints;
 
-    user.walletBalance -= validatedSlot.price;
+    user.walletBalance -= finalPrice;
     const pointsAwarded = 10; 
     user.loyaltyPoints += pointsAwarded;
 
@@ -302,23 +317,27 @@ exports.createBooking = async (req, res) => {
       startTime: validatedSlot.startTimeUTC, 
       endTime: validatedSlot.endTimeUTC,   
       status: 'upcoming',
-      pricePaid: validatedSlot.price, 
+      pricePaid: finalPrice, 
       gamerTagAtBooking: gamerTag, 
-      bookedAt: new Date()
+      bookedAt: new Date(),
+      withSecondConsole: !!addSecondConsole,
     });
     await newBooking.save({ session });
     
-    // Using validatedSlot.startTimeUTC for formatting transaction description
     const transactionTimeDisplay = validatedSlot.startTimeUTC.toLocaleString('en-IN', {
         hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata'
     });
     const transactionDateDisplay = new Date(validatedSlot.startTimeUTC).toLocaleDateString('en-CA', {timeZone: 'Asia/Kolkata'});
+    let transactionDescription = `Booking: ${screen.name} on ${transactionDateDisplay} at ${transactionTimeDisplay}`;
+    if (addSecondConsole) {
+        transactionDescription += ' (with 2nd console)';
+    }
 
     const newTransaction = new Transaction({
       user: userId,
       type: 'booking-fee',
-      amount: -validatedSlot.price, 
-      description: `Booking: ${screen.name} on ${transactionDateDisplay} at ${transactionTimeDisplay}`,
+      amount: -finalPrice, 
+      description: transactionDescription,
       relatedBooking: newBooking._id,
       walletBalanceBefore: walletBalanceBefore,
       walletBalanceAfter: user.walletBalance,

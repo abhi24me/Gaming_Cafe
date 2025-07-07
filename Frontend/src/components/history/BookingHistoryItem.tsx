@@ -4,7 +4,7 @@
 import type { Booking, Screen } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Clock, UserCircle, IndianRupee } from 'lucide-react';
+import { CalendarDays, Clock, UserCircle, IndianRupee, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -76,6 +76,10 @@ export default function BookingHistoryItem({ booking }: BookingHistoryItemProps)
             <span>Paid: ₹{booking.pricePaid.toFixed(2)}</span>
           </div>
         )}
+         <div className="flex items-center text-xs sm:text-sm">
+            <Gamepad2 className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
+            <span>Consoles: {booking.withSecondConsole ? '2' : '1'}</span>
+        </div>
       </CardContent>
     </Card>
   );

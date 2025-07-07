@@ -419,12 +419,6 @@ exports.addScreenPriceOverride = async (req, res) => {
     return res.status(400).json({ message: 'Price must be a non-negative number.' });
   }
 
-  const startTotalMinutes = parseInt(startTimeUTC.split(':')[0]) * 60 + parseInt(startTimeUTC.split(':')[1]);
-  const endTotalMinutes = parseInt(endTimeUTC.split(':')[0]) * 60 + parseInt(endTimeUTC.split(':')[1]);
-  if (startTotalMinutes >= endTotalMinutes) {
-      return res.status(400).json({ message: 'End time must be after start time.' });
-  }
-
   try {
     const screen = await Screen.findById(screenId);
     if (!screen) {

@@ -5,23 +5,47 @@ const mongoose = require('mongoose');
 
 // Helper function to calculate slot price based on overrides
 function calculateSlotPrice(slotStartTimeUTC, screen) {
-  const slotDayUTC = slotStartTimeUTC.getUTCDay(); // 0 (Sun) - 6 (Sat)
-  const slotTimeUTC = slotStartTimeUTC.getUTCHours() * 100 + slotStartTimeUTC.getUTCMinutes(); // e.g., 930 for 09:30
+  // Convert the slot's UTC time to IST to correctly determine the day of the week
+  const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours for IST
+  const slotTimeInIST = new Date(slotStartTimeUTC.getTime() + istOffset);
+  const slotDayIST = slotTimeInIST.getUTCDay(); // Get day of week in IST (0=Sun, 6=Sat)
+
+  // Get the slot's hour and minute in UTC for time range comparison
+  const slotTimeUTC = slotStartTimeUTC.getUTCHours() * 100 + slotStartTimeUTC.getUTCMinutes();
 
   if (screen.priceOverrides && screen.priceOverrides.length > 0) {
     for (const override of screen.priceOverrides) {
-      if (override.daysOfWeek.includes(slotDayUTC)) {
-        const overrideStartTime = parseInt(override.startTimeUTC.replace(':', ''), 10);
-        const overrideEndTime = parseInt(override.endTimeUTC.replace(':', ''), 10);
+      // Check if the override applies to the slot's day (in IST)
+      if (override.daysOfWeek.includes(slotDayIST)) {
+        
+        const overrideStartTimeUTC = parseInt(override.startTimeUTC.replace(':', ''), 10);
+        const overrideEndTimeUTC = parseInt(override.endTimeUTC.replace(':', ''), 10);
 
-        if (slotTimeUTC >= overrideStartTime && slotTimeUTC < overrideEndTime) {
-          return override.price; // Use override price
+        const isOvernightRange = overrideEndTimeUTC < overrideStartTimeUTC;
+
+        let isTimeMatch = false;
+        if (isOvernightRange) {
+          // For ranges that cross midnight UTC (e.g., 22:00-02:00), the condition is OR
+          if (slotTimeUTC >= overrideStartTimeUTC || slotTimeUTC < overrideEndTimeUTC) {
+            isTimeMatch = true;
+          }
+        } else {
+          // For ranges within a single day UTC (e.g., 09:00-17:00), the condition is AND
+          if (slotTimeUTC >= overrideStartTimeUTC && slotTimeUTC < overrideEndTimeUTC) {
+            isTimeMatch = true;
+          }
+        }
+
+        if (isTimeMatch) {
+          return override.price; // Matched an override, return its price
         }
       }
     }
   }
-  return screen.basePrice; // Fallback to base price
+
+  return screen.basePrice; // No matching override found, return base price
 }
+
 
 
 // @desc    Get all active screens

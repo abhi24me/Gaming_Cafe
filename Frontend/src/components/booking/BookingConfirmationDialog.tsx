@@ -99,7 +99,7 @@ export default function BookingConfirmationDialog({
             <Info className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-primary/80" />
             <div>
                 <p className="font-semibold text-foreground/90">Note on Additional Consoles:</p>
-                <p>The price shown is for a single console. An extra ₹50 per hour will be charged at the venue for using a second console on the same screen.</p>
+                <p>The price shown is for a single console. An extra ₹40 per hour will be charged at the venue for using a second console on the same screen.</p>
             </div>
           </div>
           <AlertDialogDescription className="text-foreground/80 text-xs sm:text-sm pt-2">

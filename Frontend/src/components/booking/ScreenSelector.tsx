@@ -59,7 +59,7 @@ export default function ScreenSelector({ screens, onScreenSelect }: ScreenSelect
                 className="glowbutton mt-auto w-full"
                 aria-label={`Choose ${screen.name}`}
               >
-                Choose {screen.name}
+                Choose Screen {index + 1}
               </button>
             </CardContent>
           </Card>

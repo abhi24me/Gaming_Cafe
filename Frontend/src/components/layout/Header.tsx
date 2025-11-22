@@ -161,7 +161,7 @@ export default function Header() {
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent className="bg-card border-glow-accent">
                           <DropdownMenuItem asChild className="cursor-pointer focus:bg-accent/20">
-                            <a href="https://wa.me/+918579049036" target="_blank" rel="noopener noreferrer">
+                            <a href="https://wa.me/+919980596288" target="_blank" rel="noopener noreferrer">
                               <Phone className="mr-2 h-4 w-4 text-accent" />
                               <span>WhatsApp</span>
                             </a>

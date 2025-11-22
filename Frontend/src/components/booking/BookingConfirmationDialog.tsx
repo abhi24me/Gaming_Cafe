@@ -138,7 +138,7 @@ export default function BookingConfirmationDialog({
 
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground/90">
-              Add a second console for an extra <span className="font-bold text-primary">₹40</span>?
+              Add a second console for an extra <span className="font-bold text-primary">₹65</span>?
             </Label>
             <div className="flex space-x-4">
               <label className="flex items-center space-x-1 cursor-pointer">

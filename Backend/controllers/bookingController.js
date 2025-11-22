@@ -288,7 +288,7 @@ exports.createBooking = async (req, res) => {
     // Calculate final price with optional second console
     let finalPrice = validatedSlot.price;
     if (addSecondConsole) {
-        finalPrice += 40;
+        finalPrice += 65;
     }
 
     if (user.walletBalance < finalPrice) {

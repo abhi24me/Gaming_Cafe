@@ -17,6 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7538706253819455"
+          crossOrigin="anonymous"></script>
+      </head>
       <body className={`${orbitron.variable} ${roboto.variable} antialiased`} suppressHydrationWarning={true}>
         <AuthProvider> {/* Wrap children with AuthProvider */}
           {children}

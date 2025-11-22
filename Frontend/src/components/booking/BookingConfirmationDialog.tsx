@@ -46,7 +46,7 @@ export default function BookingConfirmationDialog({
 
   const addSecondConsole = secondConsoleChoice === true;
   const basePrice = slot?.price || 0;
-  const totalPrice = basePrice + (addSecondConsole ? 40 : 0);
+  const totalPrice = basePrice + (addSecondConsole ? 65 : 0);
 
   useEffect(() => {
     if (isOpen) {
